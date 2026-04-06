@@ -24,7 +24,7 @@ Projeto desenvolvido para simulação e treinamento no preenchimento de formulá
 ### 1. Clonar o repositório
 
 ```bash
-git clone <url-do-repositorio>
+git clone https://github.com/Pedro-hashm/Defesa-Civil/tree/main
 cd defesa-civil
 ```
 
