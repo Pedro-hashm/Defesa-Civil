@@ -11,3 +11,121 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model Usuario {
+  id Int @id @default(autoincrement())
+  nome String
+  email String @unique
+  senha_hash String
+  cargo Cargo
+  ativo Boolean @default(true)
+  criado_em DateTime @default(now())
+
+  recuperacoes RecuperacaoSenha[]
+  sessoes Sessao[]
+  artigos Artigo[]
+  comunicados Comunicado[]
+  tentativas TentativaFormulario[]
+}
+
+model RecuperacaoSenha {
+  id Int @id @default(autoincrement())
+  usuario_id Int
+  token String @unique
+  criado_em DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuario_id], references: [id])
+}
+
+model Sessao {
+  id Int @id @default(autoincrement())
+  usuario_id Int
+  token String @unique
+  expira_em DateTime
+  criado_em DateTime @default(now())
+
+  usuario Usuario @relation(fields: [usuario_id], references: [id])
+}
+
+model Categoria {
+  id Int @id @default(autoincrement())
+  nome String
+  descricao String?
+  pai_id Int?
+
+  pai Categoria? @relation("CategoriaPai", fields: [pai_id], references: [id])
+  filhos Categoria[] @relation("CategoriaPai")
+
+  artigos Artigo[]
+}
+
+model Artigo {
+  id Int @id @default(autoincrement())
+  autor_id Int
+  categoria_id Int
+  titulo String
+  conteudo String
+  publicado Boolean @default(false)
+  criado_em DateTime @default(now())
+  atualizado_em DateTime @updatedAt
+
+  autor Usuario @relation(fields: [autor_id], references: [id])
+  categoria Categoria @relation(fields: [categoria_id], references: [id])
+}
+
+model Comunicado {
+  id Int @id @default(autoincrement())
+  autor_id Int
+  titulo String
+  conteudo String
+  prioridade Prioridade
+  publicado_em DateTime @default(now())
+  atualizado_em DateTime @updatedAt
+
+  autor Usuario @relation(fields: [autor_id], references: [id])
+}
+
+model Formulario {
+  id Int @id @default(autoincrement())
+  titulo String
+  descricao String?
+  estrutura Json // aqui fica os campos dinâmicos
+  ativo Boolean @default(true)
+  criado_em DateTime @default(now())
+
+  tentativas TentativaFormulario[]
+}
+
+model TentativaFormulario {
+  id Int @id @default(autoincrement())
+  usuario_id Int
+  formulario_id Int
+
+  respostas Json
+  erros Json?
+
+  status StatusTentativa
+
+  iniciado_em DateTime @default(now())
+  finalizado_em DateTime?
+
+  usuario Usuario @relation(fields: [usuario_id], references: [id])
+  formulario Formulario @relation(fields: [formulario_id], references: [id])
+}
+
+enum StatusTentativa {
+  INICIADO
+  FINALIZADO
+  ERRO
+}
+
+enum Cargo {
+  ADMIN
+  ALUNO
+}
+
+enum Prioridade {
+  BAIXA
+  MEDIA
+  ALTA
+}
