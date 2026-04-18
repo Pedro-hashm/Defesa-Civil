@@ -29,4 +29,8 @@ export class AuthController {
       return res.status(400).json({ error: error.message || "Erro no login." });
     }
   }
+
+  async me(req: Request, res: Response) {
+    return res.status(200).json({ usuario: req.usuario });
+  }
 }
