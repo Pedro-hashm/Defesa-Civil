@@ -12,8 +12,10 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
 
-    "types": [],
     "typeRoots": ["./src/@types", "./node_modules/@types"]
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*"],
+  "ts-node": {
+    "files": true
+  }
 }
