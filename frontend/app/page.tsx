@@ -1,24 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
-
-type Usuario = {
-  id: number;
-  nome: string;
-  email: string;
-  cargo: "ADMIN" | "ALUNO" | string;
-  ativo: boolean;
-  criado_em: string;
-};
-
-type LoginResponse = {
-  token: string;
-  expira_em: string;
-  usuario: Usuario;
-};
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:8080";
+import { login, LoginResponse } from "../services/authService";
 
 export default function Home() {
   const [email, setEmail] = useState("");
@@ -34,32 +18,7 @@ export default function Home() {
     setSuccessData(null);
 
     try {
-      const response = await fetch(`${API_BASE_URL}/auth/login`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          senha,
-        }),
-      });
-
-      const data = (await response.json()) as
-        | LoginResponse
-        | { message?: string; error?: string };
-
-      if (!response.ok) {
-        const fallbackMessage =
-          "Não foi possível entrar. Confira suas credenciais e tente novamente.";
-        const errorMessage =
-          (data as { message?: string; error?: string }).message ||
-          (data as { message?: string; error?: string }).error ||
-          fallbackMessage;
-        throw new Error(errorMessage);
-      }
-
-      const loginData = data as LoginResponse;
+      const loginData = await login(email, senha);
       localStorage.setItem("defesa-civil.token", loginData.token);
       localStorage.setItem("defesa-civil.usuario", JSON.stringify(loginData.usuario));
       localStorage.setItem("defesa-civil.expira_em", loginData.expira_em);
@@ -162,9 +121,17 @@ export default function Home() {
               </div>
 
               <div className="space-y-1.5">
-                <label htmlFor="senha" className="block text-sm font-semibold text-slate-700">
-                  Senha
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="senha" className="block text-sm font-semibold text-slate-700">
+                    Senha
+                  </label>
+                  <Link
+                    href="/forgot-password"
+                    className="text-sm font-semibold text-[#003882] hover:text-[#002456]"
+                  >
+                    Esqueci minha senha
+                  </Link>
+                </div>
                 <input
                   id="senha"
                   className="h-12 w-full rounded-lg border border-slate-300 bg-slate-50 px-4 text-base text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[#003882] focus:bg-white focus:ring-2 focus:ring-[#003882]/20"
