@@ -30,6 +30,10 @@ export class AuthController {
     }
   }
 
+  async me(req: Request, res: Response) {
+    return res.status(200).json({ usuario: req.usuario });
+  }
+
   async forgotPassword(req: Request, res: Response) {
     try {
       const response = await authService.forgotPassword(req.body);
