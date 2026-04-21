@@ -1,9 +1,14 @@
 // src/modules/Usuario/usuario.routes.ts
 import { Router } from "express";
 import { UsuarioController } from "./usuario.controller";
+import { authMiddleware } from "../../middlewares/auth.middleware";
+import { rolesMiddleware } from "../../middlewares/roles.middleware";
 
 const router = Router();
 const controller = new UsuarioController();
+
+// Todas as rotas de usuário exigem autenticação + cargo ADMIN
+router.use(authMiddleware, rolesMiddleware("ADMIN"));
 
 // CRUD completo
 router.post("/", controller.criar.bind(controller));      // Create
