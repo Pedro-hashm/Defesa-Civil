@@ -10,6 +10,15 @@ export interface LoginDTO {
   senha: string;
 }
 
+export interface ForgotPasswordDTO {
+  email: string;
+}
+
+export interface ResetPasswordDTO {
+  token: string;
+  nova_senha: string;
+}
+
 export interface AuthResponseDTO {
   token: string;
   expira_em: Date;

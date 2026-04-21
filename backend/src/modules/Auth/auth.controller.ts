@@ -33,4 +33,30 @@ export class AuthController {
   async me(req: Request, res: Response) {
     return res.status(200).json({ usuario: req.usuario });
   }
+
+  async forgotPassword(req: Request, res: Response) {
+    try {
+      const response = await authService.forgotPassword(req.body);
+      return res.status(200).json(response);
+    } catch (error: any) {
+      return res
+        .status(400)
+        .json({ error: error.message || "Erro ao solicitar redefinicao de senha." });
+    }
+  }
+
+  async resetPassword(req: Request, res: Response) {
+    try {
+      const response = await authService.resetPassword(req.body);
+      return res.status(200).json(response);
+    } catch (error: any) {
+      if (error.message === "Token invalido ou expirado.") {
+        return res.status(400).json({ error: error.message });
+      }
+
+      return res
+        .status(400)
+        .json({ error: error.message || "Erro ao redefinir senha." });
+    }
+  }
 }

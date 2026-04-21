@@ -1,26 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useState } from "react";
-import { useRouter } from "next/navigation";
-import { API_URL } from "@/lib/api";
-
-type Usuario = {
-	id: number;
-	nome: string;
-	email: string;
-	cargo: "ADMIN" | "ALUNO" | string;
-	ativo: boolean;
-	criado_em: string;
-};
-
-type LoginResponse = {
-	token: string;
-	expira_em: string;
-	usuario: Usuario;
-};
+import { login, LoginResponse } from "../services/authService";
+import { useRouter } from "next/navigation"; 
 
 export default function Home() {
-	const router = useRouter();
+	const router = useRouter(); 
 	const [email, setEmail] = useState("");
 	const [senha, setSenha] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
@@ -34,52 +20,27 @@ export default function Home() {
 		setSuccessData(null);
 
 		try {
-			const response = await fetch(`${API_URL}/auth/login`, {
-				method: "POST",
-				headers: {
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					email: email.trim().toLowerCase(),
-					senha,
-				}),
-			});
-
-			const data = (await response.json()) as
-				| LoginResponse
-				| { message?: string; error?: string };
-
-			if (!response.ok) {
-				const fallbackMessage =
-					"Não foi possível entrar. Confira suas credenciais e tente novamente.";
-				const errorMessage =
-					(data as { message?: string; error?: string }).message ||
-					(data as { message?: string; error?: string }).error ||
-					fallbackMessage;
-				throw new Error(errorMessage);
-			}
-
-			const loginData = data as LoginResponse;
+			const loginData = await login(email, senha);
 			localStorage.setItem("defesa-civil.token", loginData.token);
 			localStorage.setItem("defesa-civil.usuario", JSON.stringify(loginData.usuario));
 			localStorage.setItem("defesa-civil.expira_em", loginData.expira_em);
-			
 			setSuccessData(loginData);
 			setSenha("");
 
-			// Aguarda 1 segundo para mostrar o feedback visual antes de redirecionar
+			// 3. Redirecionar após o sucesso
 			setTimeout(() => {
 				router.push("/comunicados");
 			}, 1000);
-
+			
 		} catch (error) {
 			const message =
 				error instanceof Error
 					? error.message
 					: "Ocorreu um erro inesperado ao autenticar.";
 			setErrorMessage(message);
-			setIsSubmitting(false); // Só volta o botão ao normal se der erro
-		} 
+		} finally {
+			setIsSubmitting(false);
+		}
 	}
 
 	return (
@@ -87,10 +48,8 @@ export default function Home() {
 			<section className="mx-auto flex min-h-screen w-full max-w-6xl items-center px-4 py-8 sm:px-6 lg:px-8">
 				<div className="grid w-full items-center gap-8 lg:grid-cols-2">
 					
-					{/* Lado Esquerdo - Institucional (Azul Bandeira PE: #003882) */}
+					{/* Lado Esquerdo - Institucional */}
 					<div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-[#003882] to-[#002456] px-6 py-10 text-white shadow-lg sm:px-8 sm:py-12 lg:min-h-[560px] lg:p-12 border-t-4 border-t-[#003882]">
-						
-						{/* Detalhe de cores da bandeira PE para identidade regional */}
 						<div className="absolute top-0 left-0 flex h-1.5 w-full">
 							<div className="h-full w-1/4 bg-[#003882]"></div>
 							<div className="h-full w-1/4 bg-white"></div>
@@ -98,10 +57,6 @@ export default function Home() {
 							<div className="h-full w-1/4 bg-[#FFD100]"></div>
 							<div className="h-full w-1/4 bg-[#009B3A]"></div>
 						</div>
-
-						{/* Elementos decorativos sutis */}
-						<div className="absolute right-[-60px] top-[-40px] h-40 w-40 rounded-full bg-white/5 blur-3xl" />
-						<div className="absolute bottom-[-80px] left-[-20px] h-48 w-48 rounded-full bg-blue-400/10 blur-3xl" />
 
 						<div className="relative flex h-full flex-col justify-between gap-10">
 							<div className="space-y-6">
@@ -117,23 +72,8 @@ export default function Home() {
 									</h1>
 								</div>
 								<p className="max-w-md text-base leading-relaxed text-blue-100">
-									Plataforma oficial de treinamento. Acesse sua conta para continuar seus estudos, simulações e atividades de capacitação.
+									Plataforma oficial de treinamento.
 								</p>
-							</div>
-
-							<div className="grid gap-4 sm:grid-cols-2">
-								<div className="rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition hover:bg-white/10">
-									<p className="text-sm font-semibold text-white">Aprendizado</p>
-									<p className="mt-2 text-sm leading-relaxed text-blue-100">
-										Conteúdos e simulações unificados em um só lugar.
-									</p>
-								</div>
-								<div className="rounded-xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm transition hover:bg-white/10">
-									<p className="text-sm font-semibold text-white">Acompanhamento</p>
-									<p className="mt-2 text-sm leading-relaxed text-blue-100">
-										Progresso organizado para rápido acesso institucional.
-									</p>
-								</div>
 							</div>
 						</div>
 					</div>
@@ -144,9 +84,6 @@ export default function Home() {
 							<h2 className="text-2xl font-bold text-slate-900 sm:text-3xl">
 								Acesso ao Portal
 							</h2>
-							<p className="mt-2 text-sm text-slate-500">
-								Identifique-se com suas credenciais para entrar na plataforma.
-							</p>
 						</div>
 
 						<form className="space-y-5" onSubmit={handleSubmit}>
@@ -156,49 +93,50 @@ export default function Home() {
 								</label>
 								<input
 									id="email"
-									className="h-12 w-full rounded-lg border border-slate-300 bg-slate-50 px-4 text-base text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[#003882] focus:bg-white focus:ring-2 focus:ring-[#003882]/20"
+									className="h-12 w-full rounded-lg border border-slate-300 bg-slate-50 px-4 text-base outline-none focus:border-[#003882] focus:bg-white focus:ring-2 focus:ring-[#003882]/20"
 									type="email"
-									name="email"
-									autoComplete="email"
-									placeholder="voce@defesacivil.pe.gov.br"
 									value={email}
-									onChange={(event) => setEmail(event.target.value)}
+									onChange={(e) => setEmail(e.target.value)}
 									required
 								/>
 							</div>
 
 							<div className="space-y-1.5">
-								<label htmlFor="senha" className="block text-sm font-semibold text-slate-700">
-									Senha
-								</label>
+								<div className="flex items-center justify-between">
+									<label htmlFor="senha" className="block text-sm font-semibold text-slate-700">
+										Senha
+									</label>
+									<Link
+										href="/forgot-password"
+										className="text-sm font-semibold text-[#003882] hover:underline !no-underline"
+									>
+										Esqueci minha senha
+									</Link>
+								</div>
 								<input
 									id="senha"
-									className="h-12 w-full rounded-lg border border-slate-300 bg-slate-50 px-4 text-base text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-[#003882] focus:bg-white focus:ring-2 focus:ring-[#003882]/20"
+									className="h-12 w-full rounded-lg border border-slate-300 bg-slate-50 px-4 text-base outline-none focus:border-[#003882] focus:bg-white focus:ring-2 focus:ring-[#003882]/20"
 									type="password"
-									name="senha"
-									autoComplete="current-password"
-									placeholder="Digite sua senha"
 									value={senha}
-									onChange={(event) => setSenha(event.target.value)}
+									onChange={(e) => setSenha(e.target.value)}
 									required
 								/>
 							</div>
 
-							{errorMessage ? (
+							{errorMessage && (
 								<div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
 									{errorMessage}
 								</div>
-							) : null}
+							)}
 
-							{successData ? (
+							{successData && (
 								<div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-									Login realizado com sucesso. Redirecionando,{" "}
-									<strong>{successData.usuario.nome}</strong>...
+									Login realizado com sucesso. Redirecionando...
 								</div>
-							) : null}
+							)}
 
 							<button
-								className="mt-6 flex h-12 w-full items-center justify-center rounded-lg bg-[#003882] px-5 text-base font-bold text-white transition-colors hover:bg-[#002456] focus:outline-none focus:ring-2 focus:ring-[#003882] focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-slate-400"
+								className="mt-6 flex h-12 w-full items-center justify-center rounded-lg bg-[#003882] px-5 text-base font-bold text-white transition-colors hover:bg-[#002456] disabled:bg-slate-400"
 								type="submit"
 								disabled={isSubmitting || !!successData}
 							>
@@ -206,7 +144,6 @@ export default function Home() {
 							</button>
 						</form>
 					</div>
-					
 				</div>
 			</section>
 		</main>
