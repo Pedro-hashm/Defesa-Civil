@@ -83,7 +83,6 @@ model Comunicado {
   autor_id Int
   titulo String
   conteudo String
-  prioridade Prioridade
   publicado_em DateTime @default(now())
   atualizado_em DateTime @updatedAt
 
@@ -127,10 +126,4 @@ enum StatusTentativa {
 enum Cargo {
   ADMIN
   ALUNO
-}
-
-enum Prioridade {
-  BAIXA
-  MEDIA
-  ALTA
 }
