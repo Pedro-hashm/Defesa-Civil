@@ -106,6 +106,10 @@ export class AuthService {
     const token = crypto.randomBytes(48).toString("hex");
     const expira_em = new Date(Date.now() + this.SESSION_DURATION_MS);
 
+    await prisma.sessao.deleteMany({
+      where: { usuario_id: usuario.id }
+    });
+
     await prisma.sessao.create({
       data: {
         usuario_id: usuario.id,

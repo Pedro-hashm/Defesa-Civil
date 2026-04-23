@@ -13,26 +13,26 @@ export class UsuarioService {
     criado_em: true,
   };
 
-async create(data: CreateUsuarioDTO) {
-  const salt = await bcrypt.genSalt(10);
-  const hashedSenha = await bcrypt.hash(data.senha_hash, salt);
-
-  // Garante que cargo existe
-  if (!data.cargo) {
-    throw new Error("O campo 'cargo' é obrigatório e deve ser 'ADMIN' ou 'ALUNO'.");
+  async create(data: CreateUsuarioDTO) {
+    const salt = await bcrypt.genSalt(10);
+    
+    const hashedSenha = await bcrypt.hash(data.senha, salt); 
+  
+    if (!data.cargo) {
+      throw new Error("O campo 'cargo' é obrigatório e deve ser 'ADMIN' ou 'ALUNO'.");
+    }
+  
+    return prisma.usuario.create({
+      data: {
+        nome: data.nome,
+        email: data.email,
+        senha_hash: hashedSenha, 
+        cargo: data.cargo,
+        ativo: true,
+      },
+      select: this.usuarioSelect
+    });
   }
-
-  return prisma.usuario.create({
-    data: {
-      nome: data.nome,
-      email: data.email,
-      senha_hash: hashedSenha,
-      cargo: data.cargo,  // <-- deve ser 'ADMIN' ou 'ALUNO'
-      ativo: true,        // padrão
-    },
-    select: this.usuarioSelect
-  });
-}
 
   async getAll() {
     return prisma.usuario.findMany({
@@ -58,9 +58,9 @@ async update(id: number, data: UpdateUsuarioDTO) {
     }
     updateData.cargo = data.cargo;
   }
-  if (data.senha_hash) {
+  if (data.senha) {
     const salt = await bcrypt.genSalt(10);
-    updateData.senha_hash = await bcrypt.hash(data.senha_hash, salt);
+    updateData.senha_hash = await bcrypt.hash(data.senha, salt);
   }
   if (typeof data.ativo === "boolean") updateData.ativo = data.ativo;
 
