@@ -1,8 +1,17 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/prisma';
 import bcrypt from 'bcrypt';
 import { CreateUsuarioDTO, UpdateUsuarioDTO } from './usuario.dto';
 
 export class UsuarioService {
+  private readonly usuarioSelect = {
+    id: true,
+    nome: true,
+    email: true,
+    cargo: true,
+    ativo: true,
+    criado_em: true,
+  };
 
 async create(data: CreateUsuarioDTO) {
   const salt = await bcrypt.genSalt(10);
@@ -21,41 +30,20 @@ async create(data: CreateUsuarioDTO) {
       cargo: data.cargo,  // <-- deve ser 'ADMIN' ou 'ALUNO'
       ativo: true,        // padrão
     },
-    select: {
-      id: true,
-      nome: true,
-      email: true,
-      cargo: true,
-      ativo: true,
-      criado_em: true
-    }
+    select: this.usuarioSelect
   });
 }
 
   async getAll() {
     return prisma.usuario.findMany({
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        cargo: true,
-        ativo: true,
-        criado_em: true 
-      }
+      select: this.usuarioSelect
     });
   }
 
   async getById(id: number) {
     return prisma.usuario.findUnique({
       where: { id },
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        cargo: true,
-        ativo: true,
-        criado_em: true 
-      }
+      select: this.usuarioSelect
     });
   }
 
@@ -80,19 +68,38 @@ async update(id: number, data: UpdateUsuarioDTO) {
     return prisma.usuario.update({
       where: { id },
       data: updateData,
-      select: {
-        id: true,
-        nome: true,
-        email: true,
-        cargo: true,
-        ativo: true,
-        criado_em: true
-      }
+      select: this.usuarioSelect
     });
   } catch (error: any) {
     throw new Error(error.message || "Erro ao atualizar usuário.");
   }
 }
+
+  async setActive(id: number, ativo: boolean) {
+    try {
+      return await prisma.$transaction(async (transaction) => {
+        const usuario = await transaction.usuario.update({
+          where: { id },
+          data: { ativo },
+          select: this.usuarioSelect,
+        });
+
+        if (!ativo) {
+          await transaction.sessao.deleteMany({
+            where: { usuario_id: id },
+          });
+        }
+
+        return usuario;
+      });
+    } catch (error: any) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw error;
+      }
+
+      throw new Error(error.message || "Erro ao atualizar status do usuário.");
+    }
+  }
 
   async delete(id: number) {
     return prisma.usuario.delete({

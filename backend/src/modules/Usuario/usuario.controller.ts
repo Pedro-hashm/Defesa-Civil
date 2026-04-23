@@ -1,9 +1,13 @@
 import { Request, Response } from 'express';
+import { Prisma } from '@prisma/client';
 import { UsuarioService } from './usuario.service';
 
 const usuarioService = new UsuarioService();
 
 export class UsuarioController {
+  private isUsuarioNaoEncontrado(error: unknown) {
+    return error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025';
+  }
 
 async criar(req: Request, res: Response) {
   try {
@@ -41,6 +45,34 @@ async criar(req: Request, res: Response) {
       return res.json(usuario);
     } catch (error: any) {
       return res.status(400).json({ error: "Erro ao atualizar usuário." });
+    }
+  }
+
+  async ativar(req: Request, res: Response) {
+    try {
+      const id = Number(req.params.id);
+      const usuario = await usuarioService.setActive(id, true);
+      return res.json({ message: "Usuário ativado com sucesso.", usuario });
+    } catch (error: any) {
+      if (this.isUsuarioNaoEncontrado(error)) {
+        return res.status(404).json({ error: "Usuário não encontrado." });
+      }
+
+      return res.status(400).json({ error: "Erro ao ativar usuário." });
+    }
+  }
+
+  async desativar(req: Request, res: Response) {
+    try {
+      const id = Number(req.params.id);
+      const usuario = await usuarioService.setActive(id, false);
+      return res.json({ message: "Usuário desativado com sucesso.", usuario });
+    } catch (error: any) {
+      if (this.isUsuarioNaoEncontrado(error)) {
+        return res.status(404).json({ error: "Usuário não encontrado." });
+      }
+
+      return res.status(400).json({ error: "Erro ao desativar usuário." });
     }
   }
 
