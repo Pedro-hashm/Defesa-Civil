@@ -1,7 +1,7 @@
 export interface CreateUsuarioDTO {
   nome: string;
   email: string;
-  senha_hash: string;
+  senha: string;
   cargo: "ADMIN" | "ALUNO";
   ativo?: boolean;
 }
@@ -9,7 +9,7 @@ export interface CreateUsuarioDTO {
 export interface UpdateUsuarioDTO {
   nome?: string;
   email?: string;
-  senha_hash?: string;
+  senha?: string;
   cargo?: 'ADMIN' | 'ALUNO';
   ativo?: boolean;
 }

@@ -14,6 +14,8 @@ router.use(authMiddleware, rolesMiddleware("ADMIN"));
 router.post("/", controller.criar.bind(controller));      // Create
 router.get("/", controller.listar.bind(controller));      // Read All
 router.get("/:id", controller.buscar.bind(controller));   // Read One
+router.patch("/:id/ativar", controller.ativar.bind(controller));
+router.patch("/:id/desativar", controller.desativar.bind(controller));
 router.put("/:id", controller.atualizar.bind(controller));// Update
 router.delete("/:id", controller.deletar.bind(controller));// Delete
 
