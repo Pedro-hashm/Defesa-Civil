@@ -2,7 +2,8 @@ import { StatusTentativa } from "@prisma/client";
 
 /**
  * Núcleo comum aos processos FIDE analisados (Vertentes, Garanhuns, Limoeiro, Araripina).
- * Campos específicos por município/processos subsequentes devem ir em `extras`.
+ * O seed `FIDE — Padrão` descreve 8 seções com chaves em snake_case para o front (ex.: codigo_ibge).
+ * Campos específicos por município/processos subsequentes podem ir em `extras`.
  */
 export interface RespostasFIDE {
   identificacao?: {
@@ -29,6 +30,14 @@ export interface RespostasFIDE {
   areaPopulacaoAfetada?: {
     tiposOcupacao?: string[];
     descricao?: string;
+    /** Matriz/tipos de ocupação (ex.: flags ou estrutura acordada com o template). */
+    matriz_ocupacao?: unknown;
+    /**
+     * Polígonos do mapa no front: enviar GeoJSON (ex.: FeatureCollection) em POST /tentativas.
+     * Sem PostGIS nem colunas geometry no banco — apenas JSON em `respostas`.
+     */
+    mapa_selecao?: unknown;
+    descricao_areas_afetadas?: string;
   };
   causasEfeitos?: string;
   danosHumanos?: {
@@ -86,15 +95,31 @@ export interface RespostasFIDE {
   extras?: Record<string, unknown>;
 }
 
+/**
+ * Respostas do template DMATE (paralelo ao FIDE). Estrutura flexível conforme `secoes_dmate` no seed.
+ */
+export interface RespostasDMATE {
+  caracterizacao_emergencia?: Record<string, unknown>;
+  informacoes_desastre?: Record<string, unknown>;
+  capacidade_gerencial?: Record<string, unknown>;
+  medidas_acoes?: {
+    recursos_humanos?: Record<string, unknown>;
+    recursos_materiais?: Record<string, unknown>;
+    recursos_financeiros?: Record<string, unknown>;
+  };
+  instituicao_informante?: Record<string, unknown>;
+  extras?: Record<string, unknown>;
+}
+
 export interface CreateTentativaDTO {
   formulario_id: number;
-  respostas: RespostasFIDE | Record<string, unknown>;
+  respostas: RespostasFIDE | RespostasDMATE | Record<string, unknown>;
   status?: StatusTentativa;
   erros?: Record<string, unknown> | null;
 }
 
 export interface UpdateTentativaDTO {
-  respostas?: RespostasFIDE | Record<string, unknown>;
+  respostas?: RespostasFIDE | RespostasDMATE | Record<string, unknown>;
   status?: StatusTentativa;
   erros?: Record<string, unknown> | null;
 }
