@@ -24,8 +24,8 @@ Thumbs.db
 .vscode/
 
 # Prisma
-prisma/.env       # se você tiver variáveis de ambiente locais
-prisma/migrations/  # só versionar se quiser versionar histórico de migrations
+# prisma/.env com variáveis locais — descomente se usar arquivo separado
+# prisma/migrations/ — migrations estão sendo versionadas intencionalmente
 
 # TypeScript
 *.tsbuildinfo

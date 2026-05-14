@@ -4,6 +4,7 @@ export interface CreateUsuarioDTO {
   senha: string;
   cargo: "ADMIN" | "ALUNO";
   ativo?: boolean;
+  ordem_id?: number | null;
 }
 
 export interface UpdateUsuarioDTO {
@@ -12,4 +13,5 @@ export interface UpdateUsuarioDTO {
   senha?: string;
   cargo?: 'ADMIN' | 'ALUNO';
   ativo?: boolean;
+  ordem_id?: number | null;
 }

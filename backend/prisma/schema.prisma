@@ -8,18 +8,44 @@ datasource db {
 }
 
 model Usuario {
-  id           Int                   @id @default(autoincrement())
-  nome         String
-  email        String                @unique
-  senha_hash   String
-  cargo        Cargo
-  ativo        Boolean               @default(true)
-  criado_em    DateTime              @default(now())
-  artigos      Artigo[]
-  comunicados  Comunicado[]
-  recuperacoes RecuperacaoSenha[]
-  sessoes      Sessao[]
-  tentativas   TentativaFormulario[]
+  id               Int                   @id @default(autoincrement())
+  nome             String
+  email            String                @unique
+  senha_hash       String
+  cargo            Cargo
+  ativo            Boolean               @default(true)
+  criado_em        DateTime              @default(now())
+  tentativas_login Int                   @default(0)
+  bloqueado_ate    DateTime?
+  ordem_id         Int?
+  ordem            Ordem?                @relation(fields: [ordem_id], references: [id])
+  artigos          Artigo[]
+  comunicados      Comunicado[]
+  recuperacoes     RecuperacaoSenha[]
+  sessoes          Sessao[]
+  tentativas       TentativaFormulario[]
+  convites_criados ConviteRegistro[]
+}
+
+model Ordem {
+  id        Int       @id @default(autoincrement())
+  nome      String    @unique
+  descricao String?
+  ativo     Boolean   @default(true)
+  criado_em DateTime  @default(now())
+  usuarios  Usuario[]
+}
+
+model ConviteRegistro {
+  id            Int       @id @default(autoincrement())
+  criado_por_id Int
+  token_hash    String    @unique
+  email         String?
+  cargo         Cargo     @default(ALUNO)
+  expira_em     DateTime
+  usado_em      DateTime?
+  criado_em     DateTime  @default(now())
+  criado_por    Usuario   @relation(fields: [criado_por_id], references: [id])
 }
 
 model RecuperacaoSenha {
