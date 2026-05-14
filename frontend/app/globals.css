@@ -8,34 +8,28 @@
   --pe-yellow: #FFD100;
   --pe-green: #009B3A;
 
-  /* Cores Base do Sistema (Tons neutros 'slate' para visual limpo) */
+  /* Cores Base do Sistema */
   --background: #f8fafc; /* slate-50 */
   --foreground: #0f172a; /* slate-900 */
-  --page-bg: #f8fafc;
-  --field-bg: #ffffff;
   
   /* Tipografia e Feedback */
-  --ink: #0f172a;
   --muted: #64748b; /* slate-500 */
-  --success-strong: #065f46; /* emerald-800 */
-  --danger: #b91c1c; /* red-700 */
+  --success: #065f46;
+  --danger: #b91c1c;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   
-  /* Disponibilizando as cores de PE para uso com classes Tailwind (ex: bg-pe-blue) */
   --color-pe-blue: var(--pe-blue);
   --color-pe-blue-dark: var(--pe-blue-dark);
   --color-pe-red: var(--pe-red);
   --color-pe-yellow: var(--pe-yellow);
   --color-pe-green: var(--pe-green);
   
-  /* Fontes padrão do sistema */
   --font-sans: var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, SFMono-Regular, monospace;
-  --font-heading: var(--font-sans); /* Títulos em sans-serif para visual mais moderno */
 }
 
 * {
@@ -47,18 +41,22 @@ html, body {
   background-color: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
-  /* Melhoria de legibilidade das fontes */
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 a {
-  color: var(--pe-blue);
+  color: inherit; 
   text-decoration: none;
-  transition: color 0.2s ease-in-out;
+  transition: all 0.2s ease-in-out;
 }
 
-a:hover {
+/* Estilo para links que estão "soltos" no texto (opcional) */
+.link-standard {
+  color: var(--pe-blue);
+}
+
+.link-standard:hover {
   color: var(--pe-blue-dark);
   text-decoration: underline;
 }

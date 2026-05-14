@@ -492,7 +492,7 @@ export default function UsuariosPage() {
 											disabled={isGerandoLink}
 											className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-indigo-200 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors disabled:opacity-60"
 										>
-											{isGerandoLink ? "Gerando..." : "🔑 Link de Reset"}
+											{isGerandoLink ? "Gerando..." : "Link de Reset"}
 										</button>
 										<button
 											type="button"
@@ -500,7 +500,7 @@ export default function UsuariosPage() {
 											disabled={isDesbloqueando}
 											className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-violet-200 bg-violet-50 text-violet-700 hover:bg-violet-100 transition-colors disabled:opacity-60"
 										>
-											{isDesbloqueando ? "Desbloqueando..." : "🔓 Desbloquear"}
+											{isDesbloqueando ? "Desbloqueando..." : "Desbloquear"}
 										</button>
 										<button
 											type="button"

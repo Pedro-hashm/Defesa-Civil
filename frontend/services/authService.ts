@@ -59,6 +59,11 @@ function getAuthHeader(): Record<string, string> {
 export async function login(email: string, senha: string, recaptchaToken: string): Promise<LoginResponse> {
   const senhaHash = await hashSenhaFront(senha);
 
+  console.log("DEBUG ENV FRONT:", {
+    prefixo: process.env.NEXT_PUBLIC_SENHA_PREFIXO,
+    sufixo: process.env.NEXT_PUBLIC_SENHA_SUFIXO
+  });
+
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
