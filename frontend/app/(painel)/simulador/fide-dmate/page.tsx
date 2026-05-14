@@ -59,19 +59,19 @@ export default function FideDmatePage() {
                 
                 <div className="lg:col-span-3">
                     {/* FORM ÚNICO CONSOLIDADO */}
-                    <form id="simulador-form" onSubmit={handleSubmit} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                    <form id="simulador-form" onSubmit={handleSubmit} className="md:bg-white rounded-xl md:border md:border-slate-200 shadow-sm overflow-hidden">
                         
                         {/* SEÇÃO 1: FIDE */}
-                        <div className="p-8 space-y-6 border-b border-slate-100">
+                        <div className="md:p-8 space-y-6 md:border-b md:border-slate-100">
 
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                            <div className="flex items-center justify-between border-b border-slate-100 md:pb-4 p-4">
                                 <h2 className="text-xl font-bold text-slate-800 border-l-4 border-pe-yellow pl-4">
                                     1. Formulário de Informações do Desastre (FIDE)
                                 </h2>
                                 <span className="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded uppercase">Obrigatório</span>
                             </div>
 
-                            <p className="text-slate-500 text-sm italic leading-relaxed">
+                            <p className="text-slate-500 text-sm italic leading-relaxed px-4 md:px-0">
                                 Detalhe os danos humanos, materiais, ambientais e prejuízos econômicos do cenário.
                             </p>
                         

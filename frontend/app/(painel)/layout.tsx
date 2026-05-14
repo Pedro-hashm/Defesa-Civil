@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react"; 
+import { useState, useEffect } from "react";
 
 export default function PainelLayout({ children }: { children: React.ReactNode }) {
 	const pathname = usePathname();
@@ -104,6 +105,21 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
 						</svg>
 						Gestão de Usuários
 					</Link>
+
+					<Link
+						href="/ordens"
+						onClick={() => setIsMobileMenuOpen(false)}
+						className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors !no-underline ${
+							isActive("/ordens")
+								? "bg-white/20 !text-white shadow-sm border border-white/20"
+								: "!text-slate-300 hover:bg-white/10 hover:!text-white"
+						}`}
+					>
+						<svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+							<path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+						</svg>
+						Gestão de Ordens
+					</Link>
 				</>
 			)}
 		</>
@@ -124,8 +140,8 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
 				</div>
 
 				<div className="flex items-center gap-4 p-8 shrink-0">
-					<div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 border border-white/20 text-lg font-bold backdrop-blur-sm shadow-sm">
-						DC
+					<div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/10 border border-white/20 backdrop-blur-sm shadow-sm overflow-hidden">
+						<Image src="/img/logo-defesa-civil.jpg" alt="Logo Defesa Civil" width={48} height={48} className="h-full w-full object-contain" />
 					</div>
 					<div>
 						<h2 className="text-lg font-bold leading-tight !text-white">Defesa Civil</h2>
@@ -194,7 +210,9 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
 				{/* HEADER MOBILE TRAVADO */}
 				<header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 lg:hidden shrink-0 z-[50]">
 					<div className="flex items-center gap-2 font-bold text-[#003882]">
-						<div className="flex h-8 w-8 items-center justify-center rounded bg-[#003882] text-xs text-white">DC</div>
+						<div className="flex h-8 w-8 items-center justify-center rounded bg-[#003882] overflow-hidden">
+							<Image src="/img/logo-defesa-civil.jpg" alt="Logo Defesa Civil" width={32} height={32} className="h-full w-full object-contain" />
+						</div>
 						Defesa Civil
 					</div>
 					
