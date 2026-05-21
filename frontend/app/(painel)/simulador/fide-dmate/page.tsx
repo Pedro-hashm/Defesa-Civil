@@ -81,14 +81,14 @@ export default function FideDmatePage() {
                         </div>
 
                         {/* SEÇÃO 2: DMATE */}
-                        <div className="p-8 space-y-6 bg-slate-50/30">
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                                <h2 className="text-xl font-bold text-slate-800 border-l-4 border-pe-red pl-4">
+                        <div className="md:p-8 space-y-6 md:border-b md:border-slate-100">
+                            <div className="flex items-center justify-between border-b border-slate-100 md:pb-4 pb-4">
+                                <h2 className="text-xl font-bold text-slate-800 border-l-4 border-pe-red pl-4 mt-8">
                                     2. Declaração Municipal de Atuação Emergencial (DMATE)
                                 </h2>
                                 <span className="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded uppercase">Obrigatório</span>
                             </div>
-                            <p className="text-slate-500 text-sm italic leading-relaxed">
+                            <p className="text-slate-500 text-sm italic leading-relaxed md:px-0">
                                 Informe a capacidade de resposta e as ações já adotadas pelo município.
                             </p>
                         
