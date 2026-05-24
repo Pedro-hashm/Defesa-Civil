@@ -4,24 +4,74 @@ import { useState } from "react";
 import Link from "next/link";
 import Fide from "@/components/forms/Fide";
 import Dmate from "@/components/forms/Dmate";
+import { salvarSimulacaoFideDmate } from "@/services/simuladorService";
+
+type SimulacaoFormData = Record<string, unknown>;
+
+function hasAtLeastOneMappedArea(mapaGeojson: unknown): boolean {
+    if (!mapaGeojson) {
+        return false;
+    }
+
+    try {
+        const parsed =
+            typeof mapaGeojson === "string"
+                ? (JSON.parse(mapaGeojson) as unknown)
+                : mapaGeojson;
+
+        if (
+            typeof parsed !== "object" ||
+            parsed === null ||
+            !("features" in parsed)
+        ) {
+            return false;
+        }
+
+        const features = (parsed as { features?: unknown }).features;
+        return Array.isArray(features) && features.length > 0;
+    } catch {
+        return false;
+    }
+}
 
 export default function FideDmatePage() {
     // Estados que concentram toda a informação dos subformulários
-    const [fideData, setFideData] = useState({});
-    const [dmateData, setDmateData] = useState({});
+    const [fideData, setFideData] = useState<SimulacaoFormData>({});
+    const [dmateData, setDmateData] = useState<SimulacaoFormData>({});
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [submitMessage, setSubmitMessage] = useState<string | null>(null);
+    const [submitError, setSubmitError] = useState<string | null>(null);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        
-        const payload = {
-            fide: fideData,
-            dmate: dmateData,
-            finalizado_em: new Date().toISOString()
-        };
 
-        console.log("Payload consolidado:", payload);
-        // Lógica de submissão (ex: fetch('/api/tentativas', ...))
-    }
+        setSubmitMessage(null);
+        setSubmitError(null);
+
+        if (!hasAtLeastOneMappedArea(fideData.mapa_geojson)) {
+            setSubmitError("Selecione ao menos uma area atingida no mapa antes de finalizar.");
+            return;
+        }
+
+        setIsSubmitting(true);
+
+        try {
+            await salvarSimulacaoFideDmate({
+                fide: fideData,
+                dmate: dmateData,
+            });
+
+            setSubmitMessage("Simulacao salva com sucesso no banco de dados.");
+        } catch (error: unknown) {
+            const message =
+                error instanceof Error
+                    ? error.message
+                    : "Nao foi possivel salvar a simulacao.";
+            setSubmitError(message);
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
 
     return (
         <div className="animate-in fade-in duration-500 pb-20">
@@ -48,12 +98,25 @@ export default function FideDmatePage() {
                     <button 
                         form="simulador-form" // Vincula ao form pelo ID caso queira mover o botão pra fora
                         type="submit"
+                        disabled={isSubmitting}
                         className="px-6 py-2 text-sm font-bold !text-white bg-pe-blue hover:bg-pe-blue-dark rounded-lg shadow-sm transition-all cursor-pointer"
                     >
-                        Finalizar Envio
+                        {isSubmitting ? "Salvando..." : "Finalizar Envio"}
                     </button>
                 </div>
             </div>
+
+            {submitMessage && (
+                <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+                    {submitMessage}
+                </div>
+            )}
+
+            {submitError && (
+                <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                    {submitError}
+                </div>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                 
