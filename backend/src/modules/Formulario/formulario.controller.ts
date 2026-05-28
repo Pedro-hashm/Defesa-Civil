@@ -57,6 +57,18 @@ export class FormularioController {
     }
   }
 
+  async listarTentativasSupervisor(req: Request, res: Response) {
+    try {
+      const lista = await formularioService.listarTentativasSupervisor();
+      return res.json(lista);
+    } catch (error: unknown) {
+      return res.status(400).json({
+        error:
+          error instanceof Error ? error.message : "Erro ao listar tentativas.",
+      });
+    }
+  }
+
   async buscarTentativa(req: Request, res: Response) {
     try {
       const id = Number(req.params.id);

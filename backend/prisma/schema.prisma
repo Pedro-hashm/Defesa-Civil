@@ -15,16 +15,16 @@ model Usuario {
   cargo            Cargo
   ativo            Boolean               @default(true)
   criado_em        DateTime              @default(now())
-  tentativas_login Int                   @default(0)
   bloqueado_ate    DateTime?
   ordem_id         Int?
-  ordem            Ordem?                @relation(fields: [ordem_id], references: [id])
+  tentativas_login Int                   @default(0)
   artigos          Artigo[]
   comunicados      Comunicado[]
+  convites_criados ConviteRegistro[]
   recuperacoes     RecuperacaoSenha[]
   sessoes          Sessao[]
   tentativas       TentativaFormulario[]
-  convites_criados ConviteRegistro[]
+  ordem            Ordem?                @relation(fields: [ordem_id], references: [id])
 }
 
 model Ordem {
@@ -52,8 +52,8 @@ model RecuperacaoSenha {
   id         Int       @id @default(autoincrement())
   usuario_id Int
   criado_em  DateTime  @default(now())
-  token_hash String    @unique
   expira_em  DateTime
+  token_hash String    @unique
   usado_em   DateTime?
   usuario    Usuario   @relation(fields: [usuario_id], references: [id])
 

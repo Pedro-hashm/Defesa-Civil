@@ -281,6 +281,14 @@ export class FormularioService {
     });
   }
 
+  async listarTentativasSupervisor() {
+    return prisma.tentativaFormulario.findMany({
+      where: {},
+      orderBy: { iniciado_em: "desc" },
+      select: tentativaSelect,
+    });
+  }
+
   async buscarTentativa(id: number, usuarioId: number, cargo: Cargo) {
     const row = await prisma.tentativaFormulario.findUnique({
       where: { id },
