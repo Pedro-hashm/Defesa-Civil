@@ -8,6 +8,7 @@ export interface CadastroDTO {
 export interface LoginDTO {
   email: string;
   senha: string;
+  recaptcha_token: string;
 }
 
 export interface ForgotPasswordDTO {
@@ -30,4 +31,33 @@ export interface AuthResponseDTO {
     ativo: boolean;
     criado_em: Date;
   };
+}
+
+/** Payload para admin criar um convite de registro */
+export interface CriarConviteDTO {
+  email?: string;
+  cargo?: "ADMIN" | "ALUNO";
+}
+
+/** Resposta ao criar um convite */
+export interface ConviteResponseDTO {
+  link: string;
+  expira_em: Date;
+  email?: string;
+  cargo: "ADMIN" | "ALUNO";
+}
+
+/** Informações retornadas ao validar um token de convite */
+export interface ConviteInfoDTO {
+  email?: string;
+  cargo: "ADMIN" | "ALUNO";
+  expira_em: Date;
+}
+
+/** Payload para o usuário se registrar usando um convite */
+export interface RegistrarComConviteDTO {
+  token: string;
+  nome: string;
+  email: string;
+  senha: string;
 }

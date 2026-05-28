@@ -8,28 +8,57 @@ datasource db {
 }
 
 model Usuario {
-  id           Int                   @id @default(autoincrement())
-  nome         String
-  email        String                @unique
-  senha_hash   String
-  cargo        Cargo
-  ativo        Boolean               @default(true)
-  criado_em    DateTime              @default(now())
-  artigos      Artigo[]
-  comunicados  Comunicado[]
-  recuperacoes RecuperacaoSenha[]
-  sessoes      Sessao[]
-  tentativas   TentativaFormulario[]
+  id               Int                   @id @default(autoincrement())
+  nome             String
+  email            String                @unique
+  senha_hash       String
+  cargo            Cargo
+  ativo            Boolean               @default(true)
+  criado_em        DateTime              @default(now())
+  bloqueado_ate    DateTime?
+  ordem_id         Int?
+  tentativas_login Int                   @default(0)
+  artigos          Artigo[]
+  comunicados      Comunicado[]
+  convites_criados ConviteRegistro[]
+  recuperacoes     RecuperacaoSenha[]
+  sessoes          Sessao[]
+  tentativas       TentativaFormulario[]
+  ordem            Ordem?                @relation(fields: [ordem_id], references: [id])
+}
+
+model Ordem {
+  id        Int       @id @default(autoincrement())
+  nome      String    @unique
+  descricao String?
+  ativo     Boolean   @default(true)
+  criado_em DateTime  @default(now())
+  usuarios  Usuario[]
+}
+
+model ConviteRegistro {
+  id            Int       @id @default(autoincrement())
+  criado_por_id Int
+  token_hash    String    @unique
+  email         String?
+  cargo         Cargo     @default(ALUNO)
+  expira_em     DateTime
+  usado_em      DateTime?
+  criado_em     DateTime  @default(now())
+  criado_por    Usuario   @relation(fields: [criado_por_id], references: [id])
 }
 
 model RecuperacaoSenha {
   id         Int       @id @default(autoincrement())
   usuario_id Int
-  token_hash String    @unique
-  expira_em  DateTime
-  usado_em   DateTime?
   criado_em  DateTime  @default(now())
+  expira_em  DateTime
+  token_hash String    @unique
+  usado_em   DateTime?
   usuario    Usuario   @relation(fields: [usuario_id], references: [id])
+
+  @@index([expira_em])
+  @@index([usuario_id])
 }
 
 model Sessao {
@@ -107,5 +136,3 @@ enum Cargo {
   ADMIN
   ALUNO
 }
-
-

@@ -1,11 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useMemo, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { resetPassword } from "../../services/authService";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const searchParams = useSearchParams();
   const token = useMemo(() => searchParams.get("token")?.trim() ?? "", [searchParams]);
 
@@ -130,5 +130,17 @@ export default function ResetPasswordPage() {
         </p>
       </section>
     </main>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={
+      <main className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <p className="text-slate-500">Carregando...</p>
+      </main>
+    }>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

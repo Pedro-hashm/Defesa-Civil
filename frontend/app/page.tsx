@@ -1,9 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent, useState } from "react";
+import Image from "next/image";
+import { FormEvent, useRef, useState } from "react";
+import ReCAPTCHA from "react-google-recaptcha";
 import { login, LoginResponse } from "../services/authService";
-import { useRouter } from "next/navigation"; 
+import { useRouter } from "next/navigation";
+
+const RECAPTCHA_SITE_KEY =
+  process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? "6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI";
 
 export default function Home() {
 	const router = useRouter(); 
@@ -12,6 +17,7 @@ export default function Home() {
 	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [errorMessage, setErrorMessage] = useState("");
 	const [successData, setSuccessData] = useState<LoginResponse | null>(null);
+	const recaptchaRef = useRef<ReCAPTCHA>(null);
 
 	async function handleSubmit(event: FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -19,20 +25,30 @@ export default function Home() {
 		setErrorMessage("");
 		setSuccessData(null);
 
+		const recaptchaToken = recaptchaRef.current?.getValue() ?? "";
+
+		if (!recaptchaToken) {
+			setErrorMessage("Confirme que você não é um robô antes de continuar.");
+			setIsSubmitting(false);
+			return;
+		}
+
 		try {
-			const loginData = await login(email, senha);
+			const loginData = await login(email, senha, recaptchaToken);
 			localStorage.setItem("defesa-civil.token", loginData.token);
 			localStorage.setItem("defesa-civil.usuario", JSON.stringify(loginData.usuario));
 			localStorage.setItem("defesa-civil.expira_em", loginData.expira_em);
 			setSuccessData(loginData);
 			setSenha("");
 
-			// 3. Redirecionar após o sucesso
+			// Redirecionar após o sucesso
 			setTimeout(() => {
 				router.push("/comunicados");
 			}, 1000);
 			
 		} catch (error) {
+			// Reseta o widget para exigir novo clique na próxima tentativa
+			recaptchaRef.current?.reset();
 			const message =
 				error instanceof Error
 					? error.message
@@ -60,8 +76,8 @@ export default function Home() {
 
 						<div className="relative flex h-full flex-col justify-between gap-10">
 							<div className="space-y-6">
-								<div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 border border-white/20 text-xl font-bold backdrop-blur-sm shadow-sm">
-									DC
+								<div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 border border-white/20 backdrop-blur-sm shadow-sm overflow-hidden">
+									<Image src="/img/logo-defesa-civil.jpg" alt="Logo Defesa Civil" width={56} height={56} className="h-full w-full object-contain" />
 								</div>
 								<div>
 									<p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-2">
@@ -120,6 +136,15 @@ export default function Home() {
 									value={senha}
 									onChange={(e) => setSenha(e.target.value)}
 									required
+								/>
+							</div>
+
+							{/* reCAPTCHA v2 */}
+							<div className="flex justify-center">
+								<ReCAPTCHA
+									ref={recaptchaRef}
+									sitekey={RECAPTCHA_SITE_KEY}
+									hl="pt-BR"
 								/>
 							</div>
 
