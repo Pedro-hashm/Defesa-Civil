@@ -1,7 +1,5 @@
 "use client";
 
-import { hashSenhaFront } from "../lib/passwordUtils";
-
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? "http://localhost:8080";
 
 type ApiError = {
@@ -57,19 +55,12 @@ function getAuthHeader(): Record<string, string> {
 }
 
 export async function login(email: string, senha: string, recaptchaToken: string): Promise<LoginResponse> {
-  const senhaHash = await hashSenhaFront(senha);
-
-  console.log("DEBUG ENV FRONT:", {
-    prefixo: process.env.NEXT_PUBLIC_SENHA_PREFIXO,
-    sufixo: process.env.NEXT_PUBLIC_SENHA_SUFIXO
-  });
-
   const response = await fetch(`${API_BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       email: email.trim().toLowerCase(),
-      senha: senhaHash,
+      senha,
       recaptcha_token: recaptchaToken,
     }),
   });
@@ -91,12 +82,10 @@ export async function resetPassword(
   token: string,
   novaSenha: string,
 ): Promise<{ message: string }> {
-  const senhaHash = await hashSenhaFront(novaSenha);
-
   const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, nova_senha: senhaHash }),
+    body: JSON.stringify({ token, nova_senha: novaSenha }),
   });
 
   return parseResponse<{ message: string }>(response);
@@ -132,12 +121,10 @@ export async function registrarComConvite(
   email: string,
   senha: string,
 ): Promise<LoginResponse> {
-  const senhaHash = await hashSenhaFront(senha);
-
   const response = await fetch(`${API_BASE_URL}/auth/registrar`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, nome, email, senha: senhaHash }),
+    body: JSON.stringify({ token, nome, email, senha }),
   });
 
   return parseResponse<LoginResponse>(response);
@@ -157,4 +144,3 @@ export async function gerarLinkResetAdmin(
 
   return parseResponse<{ link: string; expira_em: string }>(response);
 }
-

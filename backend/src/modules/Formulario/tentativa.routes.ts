@@ -7,6 +7,12 @@ const router = Router();
 const controller = new FormularioController();
 
 router.get("/", authMiddleware, controller.listarTentativas.bind(controller));
+router.get(
+  "/supervisor",
+  authMiddleware,
+  rolesMiddleware("ADMIN"),
+  controller.listarTentativasSupervisor.bind(controller)
+);
 router.get("/:id", authMiddleware, controller.buscarTentativa.bind(controller));
 
 router.post(
