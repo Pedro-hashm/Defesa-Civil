@@ -44,6 +44,162 @@ const tentativaSelect = {
   },
 };
 
+type JsonRecord = Record<string, unknown>;
+
+function isRecord(value: unknown): value is JsonRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isClosedLinearRing(ring: unknown[]): boolean {
+  if (ring.length < 4) {
+    return false;
+  }
+
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+
+  if (!Array.isArray(first) || !Array.isArray(last) || first.length < 2 || last.length < 2) {
+    return false;
+  }
+
+  return Number(first[0]) === Number(last[0]) && Number(first[1]) === Number(last[1]);
+}
+
+function assertLngLat(position: unknown) {
+  if (!Array.isArray(position) || position.length < 2) {
+    throw new Error("GeoJSON invalido: coordenada deve ter [lng, lat].");
+  }
+
+  const lng = Number(position[0]);
+  const lat = Number(position[1]);
+
+  if (!Number.isFinite(lng) || !Number.isFinite(lat)) {
+    throw new Error("GeoJSON invalido: coordenadas devem ser numericas.");
+  }
+
+  if (lng < -180 || lng > 180 || lat < -90 || lat > 90) {
+    throw new Error("GeoJSON invalido: coordenadas fora do intervalo permitido.");
+  }
+}
+
+function assertPolygonCoordinates(coords: unknown) {
+  if (!Array.isArray(coords) || coords.length === 0) {
+    throw new Error("GeoJSON invalido: Polygon sem aneis.");
+  }
+
+  coords.forEach((ring) => {
+    if (!Array.isArray(ring)) {
+      throw new Error("GeoJSON invalido: anel do Polygon malformado.");
+    }
+
+    ring.forEach(assertLngLat);
+
+    if (!isClosedLinearRing(ring)) {
+      throw new Error("GeoJSON invalido: o poligono deve estar fechado.");
+    }
+  });
+}
+
+function assertGeometry(geometry: unknown) {
+  if (!isRecord(geometry)) {
+    throw new Error("GeoJSON invalido: geometria ausente.");
+  }
+
+  const type = geometry.type;
+  const coordinates = geometry.coordinates;
+
+  if (type === "Polygon") {
+    assertPolygonCoordinates(coordinates);
+    return;
+  }
+
+  if (type === "MultiPolygon") {
+    if (!Array.isArray(coordinates) || coordinates.length === 0) {
+      throw new Error("GeoJSON invalido: MultiPolygon sem coordenadas.");
+    }
+
+    coordinates.forEach(assertPolygonCoordinates);
+    return;
+  }
+
+  throw new Error("GeoJSON invalido: somente Polygon e MultiPolygon sao suportados.");
+}
+
+function parseAndValidateGeoJson(value: unknown): Prisma.InputJsonValue {
+  const parsed =
+    typeof value === "string"
+      ? (() => {
+          try {
+            return JSON.parse(value) as unknown;
+          } catch {
+            throw new Error("GeoJSON invalido: nao foi possivel interpretar o JSON.");
+          }
+        })()
+      : value;
+
+  if (!isRecord(parsed) || parsed.type !== "FeatureCollection" || !Array.isArray(parsed.features)) {
+    throw new Error("GeoJSON invalido: esperado FeatureCollection.");
+  }
+
+  if (parsed.features.length === 0) {
+    throw new Error("GeoJSON invalido: informe ao menos uma area afetada.");
+  }
+
+  parsed.features.forEach((feature) => {
+    if (!isRecord(feature)) {
+      throw new Error("GeoJSON invalido: feature malformada.");
+    }
+
+    assertGeometry(feature.geometry);
+  });
+
+  return parsed as Prisma.InputJsonValue;
+}
+
+function normalizarRespostasComMapa(respostas: unknown): Prisma.InputJsonValue {
+  if (!isRecord(respostas)) {
+    return respostas as Prisma.InputJsonValue;
+  }
+
+  const clone = JSON.parse(JSON.stringify(respostas)) as JsonRecord;
+
+  const fide = isRecord(clone.fide) ? clone.fide : undefined;
+  const areaFide = fide && isRecord(fide.areaPopulacaoAfetada) ? fide.areaPopulacaoAfetada : undefined;
+
+  const directArea = isRecord(clone.areaPopulacaoAfetada) ? clone.areaPopulacaoAfetada : undefined;
+
+  const candidate =
+    (fide?.mapa_geojson as unknown) ??
+    (areaFide?.mapa_selecao as unknown) ??
+    (clone.mapa_geojson as unknown) ??
+    (directArea?.mapa_selecao as unknown);
+
+  if (candidate === undefined || candidate === null || candidate === "") {
+    return clone as Prisma.InputJsonValue;
+  }
+
+  const geojson = parseAndValidateGeoJson(candidate);
+
+  if (fide) {
+    fide.mapa_geojson = geojson;
+    const area = isRecord(fide.areaPopulacaoAfetada)
+      ? fide.areaPopulacaoAfetada
+      : {};
+    area.mapa_selecao = geojson;
+    fide.areaPopulacaoAfetada = area;
+    clone.fide = fide;
+  } else {
+    clone.mapa_geojson = geojson;
+    const area = isRecord(clone.areaPopulacaoAfetada)
+      ? clone.areaPopulacaoAfetada
+      : {};
+    area.mapa_selecao = geojson;
+    clone.areaPopulacaoAfetada = area;
+  }
+
+  return clone as Prisma.InputJsonValue;
+}
+
 function assertRespostasObjeto(respostas: unknown) {
   if (
     respostas === null ||
@@ -81,6 +237,7 @@ export class FormularioService {
 
   async criarTentativa(usuarioId: number, data: CreateTentativaDTO) {
     assertRespostasObjeto(data.respostas);
+    const respostasNormalizadas = normalizarRespostasComMapa(data.respostas);
 
     const form = await prisma.formulario.findFirst({
       where: { id: data.formulario_id, ativo: true },
@@ -96,7 +253,7 @@ export class FormularioService {
       data: {
         usuario_id: usuarioId,
         formulario_id: data.formulario_id,
-        respostas: data.respostas as Prisma.InputJsonValue,
+        respostas: respostasNormalizadas,
         erros:
           data.erros === undefined
             ? undefined
@@ -170,7 +327,7 @@ export class FormularioService {
 
     const updateData: Prisma.TentativaFormularioUpdateInput = {};
     if (data.respostas !== undefined) {
-      updateData.respostas = data.respostas as Prisma.InputJsonValue;
+      updateData.respostas = normalizarRespostasComMapa(data.respostas);
     }
     if (data.erros !== undefined) {
       updateData.erros =

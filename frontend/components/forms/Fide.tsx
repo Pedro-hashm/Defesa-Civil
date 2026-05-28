@@ -1,5 +1,7 @@
 "use client";
 
+import AffectedAreasMap from "@/components/maps/AffectedAreasMap";
+
 interface FideProps {
     fideData: any;
     setFideData: (data: any) => void;
@@ -166,9 +168,10 @@ export default function Fide({ fideData = {}, setFideData }: FideProps) {
 
                     <div className={subHeader}>4.2 Seleção das áreas com população afetada</div>
                     <div className="p-5 bg-slate-50">
-                        <div className="w-full h-80 bg-slate-200 border border-slate-300 rounded flex items-center justify-center text-slate-400 text-sm md:text-base font-medium">
-                            [ Módulo de Mapa Interativo (GeoJSON) - Implementação Futura ]
-                        </div>
+                        <AffectedAreasMap
+                            value={fideData.mapa_geojson || ""}
+                            onChange={(geojson) => handleChange("mapa_geojson", geojson)}
+                        />
                     </div>
 
                     <div className={subHeader}>4.3 Descrição das áreas com população afetada</div>
