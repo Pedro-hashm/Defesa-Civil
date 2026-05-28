@@ -224,6 +224,8 @@ async function main() {
   const prefixoServidor = process.env.PASSWORD_PREFIXO ?? '';
   const sufixoServidor  = process.env.PASSWORD_SUFIXO  ?? '';
 
+  console.log(prefixoServidor, senhaRaw, sufixoServidor);
+
   // Simula o fluxo completo: SHA-256(prefixo+senha+sufixo) do front
   //                          → prefixo_srv + hash + sufixo_srv → bcrypt
   const hashDoFront = hashFront(senhaRaw);

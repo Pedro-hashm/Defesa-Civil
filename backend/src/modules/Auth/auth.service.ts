@@ -20,6 +20,8 @@ export class AuthService {
   private readonly INVITE_TOKEN_DURATION_MS = 1000 * 60 * 60 * 48; // 48 horas
   private readonly MAX_TENTATIVAS_LOGIN = 5;
   private readonly BLOQUEIO_DURATION_MS = 1000 * 60 * 15;           // 15 minutos
+  private readonly FRONTEND_SENHA_PREFIXO = process.env.FRONTEND_SENHA_PREFIXO ?? "dc@";
+  private readonly FRONTEND_SENHA_SUFIXO = process.env.FRONTEND_SENHA_SUFIXO ?? "@dc";
 
   private hashToken(token: string): string {
     return crypto.createHash("sha256").update(token).digest("hex");
@@ -47,6 +49,14 @@ export class AuthService {
   /** Hashes a senha recebida do frontend com pepper antes de bcrypt. */
   private async hashSenha(senhaDoFront: string): Promise<string> {
     return bcrypt.hash(aplicarPepper(senhaDoFront), 10);
+  }
+
+  /** Compatibilidade com a senha legada do frontend/seed. */
+  private hashFrontendLegado(senha: string): string {
+    return crypto
+      .createHash("sha256")
+      .update(`${this.FRONTEND_SENHA_PREFIXO}${senha}${this.FRONTEND_SENHA_SUFIXO}`)
+      .digest("hex");
   }
 
   /** Verifica a senha recebida do frontend contra o hash armazenado. */
@@ -159,7 +169,16 @@ export class AuthService {
       );
     }
 
-    const senhaCorreta = await this.verificarSenha(data.senha, usuario.senha_hash);
+    const candidatos = [
+      data.senha,
+      this.hashFrontendLegado(data.senha),
+    ];
+
+    const senhaCorreta = (
+      await Promise.all(
+        candidatos.map((candidato) => this.verificarSenha(candidato, usuario.senha_hash))
+      )
+    ).some(Boolean);
 
     if (!senhaCorreta) {
       const novasTentativas = usuario.tentativas_login + 1;
