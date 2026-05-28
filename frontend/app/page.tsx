@@ -77,7 +77,7 @@ export default function Home() {
 						<div className="relative flex h-full flex-col justify-between gap-10">
 							<div className="space-y-6">
 								<div className="inline-flex h-14 w-14 items-center justify-center rounded-xl bg-white/10 border border-white/20 backdrop-blur-sm shadow-sm overflow-hidden">
-									<Image src="/img/logo-defesa-civil.jpg" alt="Logo Defesa Civil" width={56} height={56} className="h-full w-full object-contain" />
+									<Image src="/img/logo-defesa-civil1.jpg" alt="Logo Defesa Civil" width={56} height={56} className="h-full w-full object-contain" />
 								</div>
 								<div>
 									<p className="text-xs font-bold uppercase tracking-widest text-blue-200 mb-2">

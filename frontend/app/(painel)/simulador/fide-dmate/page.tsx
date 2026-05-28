@@ -1,146 +1,223 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import Fide from "@/components/forms/Fide";
 import Dmate from "@/components/forms/Dmate";
-import { salvarSimulacaoFideDmate } from "@/services/simuladorService";
 
-type SimulacaoFormData = Record<string, unknown>;
-
-function hasAtLeastOneMappedArea(mapaGeojson: unknown): boolean {
-    if (!mapaGeojson) {
-        return false;
-    }
-
-    try {
-        const parsed =
-            typeof mapaGeojson === "string"
-                ? (JSON.parse(mapaGeojson) as unknown)
-                : mapaGeojson;
-
-        if (
-            typeof parsed !== "object" ||
-            parsed === null ||
-            !("features" in parsed)
-        ) {
-            return false;
+// ==========================================
+// DESCOMPACTADOR PROFUNDO (Deep Parse)
+// Garante que o JSON vire Objeto real, não importa como o Prisma tenha salvo
+// ==========================================
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function deepParseJSON(obj: any): any {
+    if (typeof obj === 'string') {
+        try {
+            return deepParseJSON(JSON.parse(obj));
+        } catch (e) {
+            return obj; // Se não for JSON válido, retorna a string pura
         }
-
-        const features = (parsed as { features?: unknown }).features;
-        return Array.isArray(features) && features.length > 0;
-    } catch {
-        return false;
+    } else if (obj !== null && typeof obj === 'object') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const newObj: any = Array.isArray(obj) ? [] : {};
+        for (const key in obj) {
+            newObj[key] = deepParseJSON(obj[key]);
+        }
+        return newObj;
     }
+    return obj;
 }
 
-export default function FideDmatePage() {
-    // Estados que concentram toda a informação dos subformulários
-    const [fideData, setFideData] = useState<SimulacaoFormData>({});
-    const [dmateData, setDmateData] = useState<SimulacaoFormData>({});
-    const [isSubmitting, setIsSubmitting] = useState(false);
-    const [submitMessage, setSubmitMessage] = useState<string | null>(null);
-    const [submitError, setSubmitError] = useState<string | null>(null);
+// Adaptador para casos de JSON antigos/profundos
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function adaptarParaFidePlano(d: any) {
+    if (!d || !d.identificacao) return d || {}; 
+    
+    const m = d.areaPopulacaoAfetada?.matriz_ocupacao || {};
+    const matLinhas = d.danosMateriais?.linhas || [];
+    const matMap: Record<string, string> = {
+        'Unidades habitacionais': 'habitacionais',
+        'Instalacoes publicas de saude': 'saude',
+        'Instalacoes publicas de ensino': 'ensino',
+        'Instalacoes publicas prestadoras de outros servicos': 'outros_servicos',
+        'Instalacoes publicas de uso comunitario': 'comunitario',
+        'Obras de infraestrutura publica': 'infraestrutura'
+    };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const flatMat: any = {};
+    matLinhas.forEach((linha: any) => {
+        const key = matMap[linha.discriminacao];
+        if (key) {
+            flatMat[`mat_${key}_dan`] = linha.quantidadeDanificadas || 0;
+            flatMat[`mat_${key}_des`] = linha.quantidadeDestruidas || 0;
+            flatMat[`mat_${key}_val`] = linha.valorReais || 0;
+        }
+    });
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
+    return {
+        uf: d.identificacao?.uf, municipio: d.identificacao?.municipio, codigo_ibge: d.identificacao?.codigoIbge, populacao: d.identificacao?.populacao, pib_anual: d.identificacao?.pibAnual, orcamento_anual: d.identificacao?.orcamentoAnual, arrecadacao_anual: d.identificacao?.arrecadacaoAnual,
+        cobrade: d.tipificacao?.cobrade, dia: d.dataOcorrencia?.dia, mes: d.dataOcorrencia?.mes, ano: d.dataOcorrencia?.ano, horario: d.dataOcorrencia?.horario,
+        causas_efeitos: d.causasEfeitos, descricao_areas: d.areaPopulacaoAfetada?.descricao_areas_afetadas,
+        ocupacao_residencial: m.residencial, ocupacao_comercial: m.comercial, ocupacao_industrial: m.industrial, 'ocupacao_agrícola': m.agricola || m.agrícola, 'ocupacao_pecuária': m.pecuaria || m.pecuária, ocupacao_extrativismo_vegetal: m.extrativismo_vegetal, ocupacao_reserva_florestal_ou_apa: m.reserva_florestal_ou_apa, ocupacao_mineração: m.mineracao || m.mineração, 'ocupacao_turismo_e_outras': m.turismo_e_outras,
+        humanos_mortos: d.danosHumanos?.mortos, humanos_feridos: d.danosHumanos?.feridos, humanos_enfermos: d.danosHumanos?.enfermos, humanos_desabrigados: d.danosHumanos?.desabrigados, humanos_desalojados: d.danosHumanos?.desalojados, humanos_desaparecidos: d.danosHumanos?.desaparecidos, humanos_outros: d.danosHumanos?.outrosAfetados, desc_humanos: d.danosHumanos?.descricao,
+        ...flatMat, desc_materiais: d.danosMateriais?.descricao,
+        amb_agua_sn: d.danosAmbientais?.poluicaoAgua ? 'sim' : 'nao', amb_ar_sn: d.danosAmbientais?.poluicaoAr ? 'sim' : 'nao', amb_solo_sn: d.danosAmbientais?.poluicaoSolo ? 'sim' : 'nao', amb_hidrico_sn: d.danosAmbientais?.exaurimentoHidrico ? 'sim' : 'nao', amb_incendio_sn: d.danosAmbientais?.incendiosApaApp ? 'sim' : 'nao', amb_agua_pop: d.danosAmbientais?.descricaoPopulacaoAtingida, amb_ar_pop: d.danosAmbientais?.descricaoPopulacaoAtingida, amb_solo_pop: d.danosAmbientais?.descricaoPopulacaoAtingida, amb_hidrico_pop: d.danosAmbientais?.descricaoPopulacaoAtingida, amb_incendio_area: d.danosAmbientais?.descricaoPopulacaoAtingida, desc_ambientais: d.danosAmbientais?.descricao,
+        prej_pub_agua: d.prejuizosEconomicosPublicos?.porServico?.agua, prej_pub_lixo: d.prejuizosEconomicosPublicos?.porServico?.lixo, prej_pub_saude: d.prejuizosEconomicosPublicos?.porServico?.saude, prej_pub_ensino: d.prejuizosEconomicosPublicos?.porServico?.ensino, prej_pub_esgoto: d.prejuizosEconomicosPublicos?.porServico?.esgoto, prej_pub_energia: d.prejuizosEconomicosPublicos?.porServico?.energia, prej_pub_telecom: d.prejuizosEconomicosPublicos?.porServico?.telecom, prej_pub_seguranca: d.prejuizosEconomicosPublicos?.porServico?.seguranca, prej_pub_transporte: d.prejuizosEconomicosPublicos?.porServico?.transporte, desc_prej_pub: d.prejuizosEconomicosPublicos?.descricao,
+        prej_priv_agricultura: d.prejuizosEconomicosPrivados?.agricultura, prej_priv_pecuaria: d.prejuizosEconomicosPrivados?.pecuaria, prej_priv_industria: d.prejuizosEconomicosPrivados?.industria, prej_priv_comercio: d.prejuizosEconomicosPrivados?.comercio, prej_priv_servicos: d.prejuizosEconomicosPrivados?.servicos, desc_prej_priv: d.prejuizosEconomicosPrivados?.descricao,
+    };
+}
 
-        setSubmitMessage(null);
-        setSubmitError(null);
+function SimuladorContent() {
+    const router = useRouter();
+    const searchParams = useSearchParams();
+    const editId = searchParams.get("edit"); // Lemos o ID da URL
 
-        if (!hasAtLeastOneMappedArea(fideData.mapa_geojson)) {
-            setSubmitError("Selecione ao menos uma area atingida no mapa antes de finalizar.");
-            return;
+    const [fideData, setFideData] = useState({});
+    const [dmateData, setDmateData] = useState({});
+    const [isLoading, setIsLoading] = useState(!!editId);
+    const [isSaving, setIsSaving] = useState(false);
+
+    // Efeito para carregar os dados se estivermos no modo "Correção"
+    useEffect(() => {
+        if (!editId) return;
+
+        async function carregarTentativa() {
+            try {
+                const token = localStorage.getItem("defesa-civil.token");
+                const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+                
+                const res = await fetch(`${baseUrl}/tentativas/${editId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+
+                if (!res.ok) throw new Error("Erro ao buscar tentativa.");
+                const data = await res.json();
+                
+                // Aplicamos o descascador profundo
+                const respostasSeguras = deepParseJSON(data.respostas || {});
+                console.log("📥 Dados carregados no Simulador:", respostasSeguras);
+
+                // Direciona para FIDE e DMATE corretamente
+                const raizFide = respostasSeguras.identificacao ? respostasSeguras : (respostasSeguras.fide || {});
+                const raizDmate = respostasSeguras.caracterizacao_emergencia ? respostasSeguras : (respostasSeguras.dmate || {});
+
+                setFideData(adaptarParaFidePlano(raizFide));
+                setDmateData(raizDmate);
+                
+            } catch (error) {
+                console.error("Falha no carregamento:", error);
+                alert("Houve um erro ao carregar os dados do seu rascunho/correção.");
+            } finally {
+                setIsLoading(false);
+            }
         }
 
-        setIsSubmitting(true);
+        carregarTentativa();
+    }, [editId]);
+
+    const handleSubmit = async (e: React.FormEvent, isDraft = false) => {
+        e.preventDefault();
+        setIsSaving(true);
+        
+        // Sempre forçamos status "INICIADO" para avaliações futuras e zeramos erros anteriores
+        const payload = {
+            formulario_id: 1, // Mude se FIDE/DMATE tiver outro ID no banco
+            status: "INICIADO",
+            erros: null, 
+            respostas: {
+                fide: fideData,
+                dmate: dmateData
+            }
+        };
 
         try {
-            await salvarSimulacaoFideDmate({
-                fide: fideData,
-                dmate: dmateData,
+            const token = localStorage.getItem("defesa-civil.token");
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
+            
+            // Se tem editId = ATUALIZA (PUT). Se não tem = CRIA (POST)
+            const method = editId ? "PUT" : "POST";
+            const url = editId ? `${baseUrl}/tentativas/${editId}` : `${baseUrl}/tentativas`;
+
+            const res = await fetch(url, {
+                method,
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
             });
 
-            setSubmitMessage("Simulacao salva com sucesso no banco de dados.");
-        } catch (error: unknown) {
-            const message =
-                error instanceof Error
-                    ? error.message
-                    : "Nao foi possivel salvar a simulacao.";
-            setSubmitError(message);
+            if (!res.ok) throw new Error("Erro ao salvar formulário");
+
+            alert(isDraft ? "Rascunho salvo com sucesso!" : "Formulário enviado para avaliação com sucesso!");
+            
+            // Retorna o aluno para a listagem
+            router.push("/minhas-respostas");
+
+        } catch (error) {
+            console.error(error);
+            alert("Erro ao enviar dados para o servidor.");
         } finally {
-            setIsSubmitting(false);
+            setIsSaving(false);
         }
     };
+
+    if (isLoading) {
+        return (
+            <div className="flex h-screen items-center justify-center flex-col gap-4 text-slate-500">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="font-bold tracking-wide">Carregando seus dados...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="animate-in fade-in duration-500 pb-20">
             
-            {/* Header de Navegação / Breadcrumb */}
+            {/* Header de Navegação */}
             <div className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200 pb-6">
                 <div>
                     <nav className="flex mb-2 text-sm text-slate-500">
-                        <Link href="/simulador" className="hover:text-pe-blue transition-colors cursor-pointer">Simulador</Link>
+                        <Link href="/minhas-respostas" className="hover:text-pe-blue transition-colors cursor-pointer">Minhas Respostas</Link>
                         <span className="mx-2">/</span>
-                        <span className="text-slate-900 font-medium">FIDE e DMATE</span>
+                        <span className="text-slate-900 font-medium">{editId ? "Corrigir Formulário" : "FIDE e DMATE"}</span>
                     </nav>
-                    <h1 className="text-2xl font-bold text-slate-900">Preenchimento de Documentação</h1>
+                    <h1 className="text-2xl font-bold text-slate-900">{editId ? "Correção de Documentação" : "Preenchimento de Documentação"}</h1>
                 </div>
 
-                {/* Botões de Ação vinculados ao Form via ID ou por estarem dentro dele */}
                 <div className="flex items-center gap-3">
                     <button 
-                        type="button" // Botão de rascunho não deve dar submit
-                        className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 cursor-pointer"
+                        type="button" 
+                        onClick={(e) => handleSubmit(e, true)}
+                        disabled={isSaving}
+                        className="px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-100 rounded-lg transition-colors border border-slate-200 cursor-pointer disabled:opacity-50"
                     >
-                        Salvar Rascunho
+                        {isSaving ? "Salvando..." : "Salvar Rascunho"}
                     </button>
                     <button 
-                        form="simulador-form" // Vincula ao form pelo ID caso queira mover o botão pra fora
+                        form="simulador-form" 
                         type="submit"
-                        disabled={isSubmitting}
-                        className="px-6 py-2 text-sm font-bold !text-white bg-pe-blue hover:bg-pe-blue-dark rounded-lg shadow-sm transition-all cursor-pointer"
+                        disabled={isSaving}
+                        className="px-6 py-2 text-sm font-bold !text-white bg-pe-blue hover:bg-pe-blue-dark rounded-lg shadow-sm transition-all cursor-pointer disabled:opacity-50"
                     >
-                        {isSubmitting ? "Salvando..." : "Finalizar Envio"}
+                        {isSaving ? "Enviando..." : (editId ? "Reenviar para Avaliação" : "Finalizar Envio")}
                     </button>
                 </div>
             </div>
 
-            {submitMessage && (
-                <div className="mb-6 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                    {submitMessage}
-                </div>
-            )}
-
-            {submitError && (
-                <div className="mb-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {submitError}
-                </div>
-            )}
-
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                
                 <div className="lg:col-span-3">
-                    {/* FORM ÚNICO CONSOLIDADO */}
-                    <form id="simulador-form" onSubmit={handleSubmit} className="md:bg-white rounded-xl md:border md:border-slate-200 shadow-sm overflow-hidden">
+                    <form id="simulador-form" onSubmit={(e) => handleSubmit(e, false)} className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
                         
                         {/* SEÇÃO 1: FIDE */}
-                        <div className="md:p-8 space-y-6 md:border-b md:border-slate-100">
-
-                            <div className="flex items-center justify-between border-b border-slate-100 md:pb-4 p-4">
+                        <div className="p-8 space-y-6 border-b border-slate-100">
+                            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                                 <h2 className="text-xl font-bold text-slate-800 border-l-4 border-pe-yellow pl-4">
                                     1. Formulário de Informações do Desastre (FIDE)
                                 </h2>
-                                <span className="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded uppercase">Obrigatório</span>
                             </div>
-
-                            <p className="text-slate-500 text-sm italic leading-relaxed px-4 md:px-0">
-                                Detalhe os danos humanos, materiais, ambientais e prejuízos econômicos do cenário.
-                            </p>
-                        
-                            {/* Componente FIDE recebendo estados do pai */}
                             <Fide fideData={fideData} setFideData={setFideData} />
-
                         </div>
 
                         {/* SEÇÃO 2: DMATE */}
@@ -149,59 +226,22 @@ export default function FideDmatePage() {
                                 <h2 className="text-xl font-bold text-slate-800 border-l-4 border-pe-red pl-4">
                                     2. Declaração Municipal de Atuação Emergencial (DMATE)
                                 </h2>
-                                <span className="text-xs font-bold bg-slate-100 text-slate-500 px-2 py-1 rounded uppercase">Obrigatório</span>
                             </div>
-                            <p className="text-slate-500 text-sm italic leading-relaxed">
-                                Informe a capacidade de resposta e as ações já adotadas pelo município.
-                            </p>
-                        
-                            {/* Componente DMATE recebendo estados do pai */}
                             <Dmate dmateData={dmateData} setDmateData={setDmateData} />
                         </div>
 
                     </form>
                 </div>
 
-                {/* Barra Lateral de Status */}
+                {/* Barra Lateral */}
                 <aside className="lg:col-span-1">
                     <div className="sticky top-8 space-y-6">
-                        <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-                            <h3 className="font-bold text-slate-900 mb-4 text-xs uppercase tracking-wider">Progresso do Simulado</h3>
-                            
-                            <div className="space-y-6">
-                                <div>
-                                    <p className="text-xs font-bold text-slate-400 uppercase mb-2">Seções FIDE</p>
-                                    <ul className="space-y-3">
-                                        <li className="flex items-center gap-2 text-sm text-green-600 font-medium">
-                                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-                                            Identificação
-                                        </li>
-                                        <li className="flex items-center gap-2 text-sm text-slate-400">
-                                            <div className="w-4 h-4 rounded-full border-2 border-slate-200" />
-                                            Danos Humanos
-                                        </li>
-                                    </ul>
-                                </div>
-
-                                <div>
-                                    <p className="text-xs font-bold text-slate-400 uppercase mb-2">Seções DMATE</p>
-                                    <ul className="space-y-3">
-                                        <li className="flex items-center gap-2 text-sm text-slate-400">
-                                            <div className="w-4 h-4 rounded-full border-2 border-slate-200" />
-                                            Capacidade Gerencial
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
-                        </div>
-
                         <div className="bg-blue-50 rounded-xl border border-blue-100 p-5 text-sm text-blue-800 shadow-sm">
                             <h4 className="font-bold mb-2 flex items-center gap-2 font-sans">
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                                 Lembrete S2iD
                             </h4>
                             <p className="leading-relaxed opacity-90">
-                                Garanta que os dados de população afetada no FIDE batam com as necessidades de recursos do DMATE.
+                                Ao enviar a correção, o seu status voltará para "INICIADO" para que o supervisor possa avaliar sua nova resposta.
                             </p>
                         </div>
                     </div>
@@ -210,4 +250,17 @@ export default function FideDmatePage() {
         </div>
     );
 }
-export { default } from "./FideDmatePage";
+
+// Suspense necessário no Next.js para leitura de searchParams da URL
+export default function FideDmatePage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen items-center justify-center flex-col gap-4 text-slate-500">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                <p className="font-bold tracking-wide">Iniciando simulador...</p>
+            </div>
+        }>
+            <SimuladorContent />
+        </Suspense>
+    );
+}

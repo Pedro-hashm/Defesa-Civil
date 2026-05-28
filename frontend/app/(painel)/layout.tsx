@@ -46,6 +46,24 @@ function NavLinks({ pathname, isAdmin, onNavigate }: NavLinksProps) {
                 Simulador de Ocorrências
             </Link>
 
+            {/* VISÍVEL APENAS PARA ALUNOS */}
+            {!isAdmin && (
+                <Link
+                    href="/minhas-respostas"
+                    onClick={onNavigate}
+                    className={`flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-colors !no-underline ${
+                        isActive("/minhas-respostas")
+                            ? "bg-white/20 !text-white shadow-sm border border-white/20"
+                            : "!text-slate-300 hover:bg-white/10 hover:!text-white"
+                    }`}
+                >
+                    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                    </svg>
+                    Minhas Respostas
+                </Link>
+            )}
+
             {/* LINKS EXCLUSIVOS PARA ADMINISTRADORES */}
             {isAdmin && (
                 <>
@@ -110,7 +128,7 @@ function NavLinks({ pathname, isAdmin, onNavigate }: NavLinksProps) {
                         }`}
                     >
                         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h10M7 16h6M4 6a2 2 0 012-2h12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M7 8h10M7 12h10M7 16h6M4 6a2 2 0 012-2h12a2 2 0 012 2v12a2 2 0 01-2 2H6a2 2 0 01-2-2V6z" />
                         </svg>
                         Respostas dos alunos
                     </Link>
@@ -125,10 +143,8 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
     const router = useRouter();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
     
-    // Mudança Crítica: Inicializamos o estado sem ler o localStorage imediatamente
     const [isAdmin, setIsAdmin] = useState(false);
 
-    // O useEffect roda apenas no lado do cliente, APÓS a primeira renderização
     useEffect(() => {
         const usuarioStorage = localStorage.getItem("defesa-civil.usuario");
         if (usuarioStorage) {
@@ -238,7 +254,7 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
                 <header className="flex h-16 items-center justify-between border-b border-slate-200 bg-white px-4 lg:hidden shrink-0 z-[50]">
                     <div className="flex items-center gap-2 font-bold text-[#003882]">
                         <div className="flex h-8 w-8 items-center justify-center rounded bg-[#003882] overflow-hidden">
-                            <Image src="/img/logo-defesa-civil.jpg" alt="Logo Defesa Civil" width={32} height={32} className="h-full w-full object-contain" />
+                            <Image src="/img/logo-defesa-civil1.jpg" alt="Logo Defesa Civil" width={32} height={32} className="h-full w-full object-contain" />
                         </div>
                         Defesa Civil
                     </div>

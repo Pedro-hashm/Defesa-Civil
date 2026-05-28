@@ -246,7 +246,8 @@ export class FormularioService {
       throw new Error("Formulario nao encontrado ou inativo.");
     }
 
-    const status = data.status ?? StatusTentativa.FINALIZADO;
+    // 🔥 CORREÇÃO: O fallback agora é INICIADO, garantindo coerência se o front não enviar o status
+    const status = data.status ?? StatusTentativa.INICIADO;
     const agora = new Date();
 
     return prisma.tentativaFormulario.create({
@@ -261,8 +262,8 @@ export class FormularioService {
               ? Prisma.JsonNull
               : (data.erros as Prisma.InputJsonValue),
         status,
-        finalizado_em:
-          status === StatusTentativa.FINALIZADO ? agora : undefined,
+        // Só injeta a data de finalizado_em se o status for explícito para FINALIZADO
+        finalizado_em: status === StatusTentativa.FINALIZADO ? agora : null,
       },
       select: tentativaSelect,
     });
@@ -329,14 +330,18 @@ export class FormularioService {
     if (data.respostas !== undefined) {
       updateData.respostas = normalizarRespostasComMapa(data.respostas);
     }
+    
     if (data.erros !== undefined) {
+      // Aceita string bruta (feedback do supervisor) ou JSON
       updateData.erros =
         data.erros === null
           ? Prisma.JsonNull
           : (data.erros as Prisma.InputJsonValue);
     }
+    
     if (data.status !== undefined) {
       updateData.status = data.status;
+      // Garante que a data de finalização mude conforme o status (Aprovação ou Retorno)
       if (data.status === StatusTentativa.FINALIZADO && !existente.finalizado_em) {
         updateData.finalizado_em = new Date();
       }
