@@ -210,4 +210,3 @@ export default function FideDmatePage() {
         </div>
     );
 }
-export { default } from "./FideDmatePage";
