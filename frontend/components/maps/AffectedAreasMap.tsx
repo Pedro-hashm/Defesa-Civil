@@ -1,183 +1,102 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useState } from "react";
-import { DrawingManager, GoogleMap, Libraries, useJsApiLoader } from "@react-google-maps/api";
+import "leaflet/dist/leaflet.css";
+import "@geoman-io/leaflet-geoman-free/dist/leaflet-geoman.css";
+
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type AffectedAreasMapProps = {
     value?: string;
     onChange: (geojson: string) => void;
 };
 
-const libraries: Libraries = ["drawing"];
+const DEFAULT_CENTER: [number, number] = [-8.0476, -34.877];
+const DEFAULT_ZOOM = 11;
 
-const mapContainerStyle = {
-    width: "100%",
-    height: "22rem",
-};
-
-const defaultCenter: google.maps.LatLngLiteral = {
-    lat: -8.0476,
-    lng: -34.877,
+const POLYGON_STYLE = {
+    color: "#003882",
+    fillColor: "#003882",
+    fillOpacity: 0.2,
+    weight: 2,
+    opacity: 0.95,
 };
 
 function ensureClosedRing(ring: number[][]): number[][] {
-    if (ring.length < 3) {
-        return ring;
-    }
-
+    if (ring.length < 3) return ring;
     const [firstLng, firstLat] = ring[0];
     const [lastLng, lastLat] = ring[ring.length - 1];
-
-    if (firstLng === lastLng && firstLat === lastLat) {
-        return ring;
-    }
-
+    if (firstLng === lastLng && firstLat === lastLat) return ring;
     return [...ring, [firstLng, firstLat]];
 }
 
-function overlaysToGeoJson(overlays: google.maps.Polygon[]): string {
-    const features = overlays
-        .map((polygon) => {
-            const path = polygon
-                .getPath()
-                .getArray()
-                .map((point) => [point.lng(), point.lat()]);
-
-            if (path.length < 3) {
-                return null;
-            }
-
-            return {
-                type: "Feature",
-                properties: {},
-                geometry: {
-                    type: "Polygon",
-                    coordinates: [ensureClosedRing(path)],
-                },
-            };
-        })
-        .filter(Boolean);
-
-    return JSON.stringify({
-        type: "FeatureCollection",
-        features,
-    });
-}
-
-function parseGeoJsonPaths(geojson: string): google.maps.LatLngLiteral[][] {
-    if (!geojson) {
-        return [];
-    }
-
+function parseGeoJsonToLatLngs(geojson: string): [number, number][][] {
+    if (!geojson) return [];
     try {
         const parsed = JSON.parse(geojson) as {
             type?: string;
             features?: Array<{
-                geometry?: {
-                    type?: string;
-                    coordinates?: number[][][];
-                };
+                geometry?: { type?: string; coordinates?: number[][][] };
             }>;
         };
-
-        if (parsed.type !== "FeatureCollection" || !Array.isArray(parsed.features)) {
-            return [];
-        }
-
+        if (parsed.type !== "FeatureCollection" || !Array.isArray(parsed.features)) return [];
         return parsed.features
-            .filter((feature) => feature.geometry?.type === "Polygon")
-            .map((feature) => {
-                const firstRing = feature.geometry?.coordinates?.[0] ?? [];
-                return firstRing
-                    .filter((coord) => Array.isArray(coord) && coord.length >= 2)
-                    .map((coord) => ({ lat: Number(coord[1]), lng: Number(coord[0]) }))
-                    .filter((coord) => Number.isFinite(coord.lat) && Number.isFinite(coord.lng));
+            .filter((f) => f.geometry?.type === "Polygon")
+            .map((f) => {
+                const ring = f.geometry?.coordinates?.[0] ?? [];
+                return ring
+                    .filter((c) => Array.isArray(c) && c.length >= 2)
+                    .map((c) => [Number(c[1]), Number(c[0])] as [number, number])
+                    .filter(([lat, lng]) => isFinite(lat) && isFinite(lng));
             })
-            .filter((path) => path.length >= 3)
-            .map((path) => {
-                const first = path[0];
-                const last = path[path.length - 1];
-
-                if (first.lat === last.lat && first.lng === last.lng) {
-                    return path.slice(0, -1);
-                }
-
-                return path;
-            });
+            .filter((path) => path.length >= 3);
     } catch {
         return [];
     }
 }
 
 export default function AffectedAreasMap({ value = "", onChange }: AffectedAreasMapProps) {
-    const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY ?? "";
-    const mapRef = useRef<google.maps.Map | null>(null);
-    const overlaysRef = useRef<google.maps.Polygon[]>([]);
-    const drawingManagerRef = useRef<google.maps.drawing.DrawingManager | null>(null);
-    const hasHydratedFromValueRef = useRef(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const mapRef = useRef<import("leaflet").Map | null>(null);
+    const polygonsRef = useRef<import("leaflet").Polygon[]>([]);
+    const onChangeRef = useRef(onChange);
+    const initialValueRef = useRef(value);
+    const hasHydratedRef = useRef(false);
+    const [isReady, setIsReady] = useState(false);
     const [saveMessage, setSaveMessage] = useState<string | null>(null);
 
-    const { isLoaded, loadError } = useJsApiLoader({
-        id: "google-maps-fide-loader",
-        googleMapsApiKey: apiKey,
-        libraries,
-    });
-
-    const polygonCount = useMemo(() => parseGeoJsonPaths(value).length, [value]);
-
-    const syncAndEmit = useCallback(() => {
-        const geojson = overlaysToGeoJson(overlaysRef.current);
-        onChange(geojson);
+    useEffect(() => {
+        onChangeRef.current = onChange;
     }, [onChange]);
 
-    const attachPolygonListeners = useCallback(
-        (polygon: google.maps.Polygon) => {
-            const path = polygon.getPath();
+    const syncAndEmit = useCallback(() => {
+        const features = polygonsRef.current
+            .map((polygon) => {
+                const latlngs = (polygon.getLatLngs()[0] ?? []) as Array<{
+                    lat: number;
+                    lng: number;
+                }>;
+                if (latlngs.length < 3) return null;
+                const coords = latlngs.map((ll) => [ll.lng, ll.lat]);
+                return {
+                    type: "Feature" as const,
+                    properties: {},
+                    geometry: {
+                        type: "Polygon" as const,
+                        coordinates: [ensureClosedRing(coords)],
+                    },
+                };
+            })
+            .filter(Boolean);
 
-            path.addListener("insert_at", syncAndEmit);
-            path.addListener("set_at", syncAndEmit);
-            path.addListener("remove_at", syncAndEmit);
+        onChangeRef.current(JSON.stringify({ type: "FeatureCollection", features }));
+    }, []);
 
-            polygon.addListener("rightclick", () => {
-                polygon.setMap(null);
-                overlaysRef.current = overlaysRef.current.filter((item) => item !== polygon);
-                syncAndEmit();
-            });
-        },
-        [syncAndEmit],
-    );
-
-    const createPolygon = useCallback(
-        (path: google.maps.LatLngLiteral[]) => {
-            if (!mapRef.current) {
-                return null;
-            }
-
-            const polygon = new google.maps.Polygon({
-                paths: path,
-                map: mapRef.current,
-                editable: true,
-                draggable: false,
-                strokeColor: "#003882",
-                strokeOpacity: 0.95,
-                strokeWeight: 2,
-                fillColor: "#003882",
-                fillOpacity: 0.2,
-            });
-
-            attachPolygonListeners(polygon);
-            overlaysRef.current.push(polygon);
-
-            return polygon;
-        },
-        [attachPolygonListeners],
-    );
+    const polygonCount = useMemo(() => parseGeoJsonToLatLngs(value).length, [value]);
 
     const clearOverlays = useCallback(() => {
-        overlaysRef.current.forEach((overlay) => overlay.setMap(null));
-        overlaysRef.current = [];
-        hasHydratedFromValueRef.current = true;
+        polygonsRef.current.forEach((p) => p.remove());
+        polygonsRef.current = [];
+        hasHydratedRef.current = true;
         syncAndEmit();
         setSaveMessage("Selecao limpa.");
     }, [syncAndEmit]);
@@ -187,67 +106,102 @@ export default function AffectedAreasMap({ value = "", onChange }: AffectedAreas
         setSaveMessage("Selecao salva no formulario.");
     }, [syncAndEmit]);
 
-    const onMapLoad = useCallback((map: google.maps.Map) => {
-        mapRef.current = map;
-    }, []);
+    useEffect(() => {
+        if (!containerRef.current || mapRef.current) return;
 
-    const onPolygonComplete = useCallback(
-        (polygon: google.maps.Polygon) => {
-            attachPolygonListeners(polygon);
-            overlaysRef.current.push(polygon);
+        let cancelled = false;
 
-            if (drawingManagerRef.current) {
-                drawingManagerRef.current.setDrawingMode(null);
+        const init = async () => {
+            const L = (await import("leaflet")).default;
+            await import("@geoman-io/leaflet-geoman-free");
+
+            if (cancelled || !containerRef.current) return;
+
+            const map = L.map(containerRef.current, {
+                center: DEFAULT_CENTER,
+                zoom: DEFAULT_ZOOM,
+            });
+
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                attribution:
+                    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19,
+            }).addTo(map);
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const pm = (map as any).pm;
+
+            pm.addControls({
+                position: "topright",
+                drawPolygon: true,
+                drawMarker: false,
+                drawCircle: false,
+                drawPolyline: false,
+                drawRectangle: false,
+                drawCircleMarker: false,
+                drawText: false,
+                editMode: true,
+                dragMode: false,
+                cutPolygon: false,
+                removalMode: true,
+                rotateMode: false,
+            });
+
+            pm.setPathOptions(POLYGON_STYLE);
+
+            const addLayerListeners = (layer: import("leaflet").Polygon) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (layer as any).on("pm:edit", () => syncAndEmit());
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                (layer as any).on("pm:remove", () => {
+                    polygonsRef.current = polygonsRef.current.filter((p) => p !== layer);
+                    syncAndEmit();
+                });
+            };
+
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            map.on("pm:create", ({ layer }: any) => {
+                const polygon = layer as import("leaflet").Polygon;
+                polygonsRef.current.push(polygon);
+                addLayerListeners(polygon);
+                syncAndEmit();
+            });
+
+            if (initialValueRef.current && !hasHydratedRef.current) {
+                const paths = parseGeoJsonToLatLngs(initialValueRef.current);
+                paths.forEach((path) => {
+                    const polygon = L.polygon(path, POLYGON_STYLE).addTo(map);
+                    addLayerListeners(polygon);
+                    polygonsRef.current.push(polygon);
+                });
+                hasHydratedRef.current = true;
             }
 
-            syncAndEmit();
-        },
-        [attachPolygonListeners, syncAndEmit],
-    );
+            mapRef.current = map;
+            setIsReady(true);
+        };
 
-    useEffect(() => {
-        if (!isLoaded || !mapRef.current || hasHydratedFromValueRef.current) {
-            return;
-        }
+        init().catch(console.error);
 
-        const initialPaths = parseGeoJsonPaths(value);
-
-        if (initialPaths.length > 0) {
-            initialPaths.forEach((path) => {
-                createPolygon(path);
-            });
-        }
-
-        hasHydratedFromValueRef.current = true;
-    }, [createPolygon, isLoaded, value]);
-
-    if (!apiKey) {
-        return (
-            <div className="rounded border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
-                Defina NEXT_PUBLIC_GOOGLE_MAPS_API_KEY para habilitar o mapa interativo.
-            </div>
-        );
-    }
-
-    if (loadError) {
-        return (
-            <div className="rounded border border-red-200 bg-red-50 p-4 text-sm text-red-700">
-                Nao foi possivel carregar o Google Maps. Verifique a chave da API e as restricoes de dominio.
-            </div>
-        );
-    }
-
-    if (!isLoaded) {
-        return (
-            <div className="h-80 w-full animate-pulse rounded border border-slate-300 bg-slate-200" />
-        );
-    }
+        return () => {
+            cancelled = true;
+            if (mapRef.current) {
+                mapRef.current.remove();
+                mapRef.current = null;
+                polygonsRef.current = [];
+                hasHydratedRef.current = false;
+                setIsReady(false);
+            }
+        };
+        // map init runs once on mount only
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     return (
         <div className="space-y-3">
             <div className="flex flex-col gap-2 text-xs text-slate-500 md:flex-row md:items-center md:justify-between">
                 <p>
-                    Use a ferramenta de poligono para desenhar as areas afetadas. Clique com o botao direito em uma area para remover.
+                    Use a ferramenta de poligono para desenhar as areas afetadas. Use o modo de remocao para excluir uma area.
                 </p>
                 <div className="flex items-center gap-2">
                     <button
@@ -268,50 +222,18 @@ export default function AffectedAreasMap({ value = "", onChange }: AffectedAreas
                 </div>
             </div>
 
-            <div className="overflow-hidden rounded border border-slate-300">
-                <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
-                    center={defaultCenter}
-                    zoom={11}
-                    onLoad={onMapLoad}
-                    options={{
-                        streetViewControl: false,
-                        fullscreenControl: false,
-                        mapTypeControl: true,
-                    }}
-                >
-                    <DrawingManager
-                        onLoad={(manager) => {
-                            drawingManagerRef.current = manager;
-                        }}
-                        options={{
-                            drawingControl: true,
-                            drawingControlOptions: {
-                                position: google.maps.ControlPosition.TOP_CENTER,
-                                drawingModes: [google.maps.drawing.OverlayType.POLYGON],
-                            },
-                            polygonOptions: {
-                                editable: true,
-                                draggable: false,
-                                strokeColor: "#003882",
-                                strokeOpacity: 0.95,
-                                strokeWeight: 2,
-                                fillColor: "#003882",
-                                fillOpacity: 0.2,
-                            },
-                        }}
-                        onPolygonComplete={onPolygonComplete}
-                    />
-                </GoogleMap>
+            <div className="relative overflow-hidden rounded border border-slate-300">
+                {!isReady && (
+                    <div className="absolute inset-0 animate-pulse bg-slate-200" />
+                )}
+                <div ref={containerRef} style={{ width: "100%", height: "22rem" }} />
             </div>
 
             <p className="text-xs text-slate-500">
                 Areas mapeadas: <strong>{polygonCount}</strong>
             </p>
 
-            {saveMessage && (
-                <p className="text-xs text-emerald-700">{saveMessage}</p>
-            )}
+            {saveMessage && <p className="text-xs text-emerald-700">{saveMessage}</p>}
         </div>
     );
 }
