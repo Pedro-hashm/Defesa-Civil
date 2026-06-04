@@ -77,6 +77,9 @@ function SimuladorContent() {
     const [dmateData, setDmateData] = useState({});
     const [isLoading, setIsLoading] = useState(!!editId);
     const [isSaving, setIsSaving] = useState(false);
+    
+    // 👇 Novo estado para armazenar o erro retornado pelo supervisor
+    const [erroSupervisor, setErroSupervisor] = useState<string | null>(null);
 
     // Efeito para carregar os dados se estivermos no modo "Correção"
     useEffect(() => {
@@ -93,6 +96,13 @@ function SimuladorContent() {
 
                 if (!res.ok) throw new Error("Erro ao buscar tentativa.");
                 const data = await res.json();
+                
+                // 👇 Captura o erro da tentativa, se houver
+                if (data.status === "ERRO" && data.erros) {
+                    setErroSupervisor(
+                        typeof data.erros === 'string' ? data.erros : JSON.stringify(data.erros)
+                    );
+                }
                 
                 // Aplicamos o descascador profundo
                 const respostasSeguras = deepParseJSON(data.respostas || {});
@@ -236,6 +246,23 @@ function SimuladorContent() {
                 {/* Barra Lateral */}
                 <aside className="lg:col-span-1">
                     <div className="sticky top-8 space-y-6">
+                        
+                        {/* 👇 AVISO DE CORREÇÃO (Aparece apenas se houver erro retornado pela API) */}
+                        {erroSupervisor && (
+                            <div className="bg-red-50 rounded-xl border border-red-200 p-5 text-sm text-red-800 shadow-sm animate-in zoom-in-95 duration-300">
+                                <h4 className="font-bold mb-3 flex items-center gap-2 text-red-900 uppercase tracking-wider text-xs">
+                                    <svg className="w-5 h-5 shrink-0 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    </svg>
+                                    Ajustes Solicitados
+                                </h4>
+                                <p className="leading-relaxed opacity-95 whitespace-pre-wrap font-medium">
+                                    {erroSupervisor}
+                                </p>
+                            </div>
+                        )}
+                        {/* ============================================================== */}
+
                         <div className="bg-blue-50 rounded-xl border border-blue-100 p-5 text-sm text-blue-800 shadow-sm">
                             <h4 className="font-bold mb-2 flex items-center gap-2 font-sans">
                                 Lembrete S2iD
