@@ -2,6 +2,84 @@
 
 import AffectedAreasMap from "@/components/maps/AffectedAreasMap";
 
+// ==========================================
+// LISTA COMPLETA COBRADE
+// Mapeada a partir do padrão da SEDEC
+// ==========================================
+const LISTA_COBRADE = [
+    // NATURAIS - Geológicos
+    { id: "1.1.1.1.0", nome: "Tremor de terra" },
+    { id: "1.1.1.2.0", nome: "Tsunami" },
+    { id: "1.1.2.0.0", nome: "Emanação vulcânica" },
+    { id: "1.1.3.1.1", nome: "Quedas, tombamentos e rolamentos - Blocos" },
+    { id: "1.1.3.1.2", nome: "Quedas, tombamentos e rolamentos - Lascas" },
+    { id: "1.1.3.1.3", nome: "Quedas, tombamentos e rolamentos - Matacães" },
+    { id: "1.1.3.1.4", nome: "Quedas, tombamentos e rolamentos - Lajes" },
+    { id: "1.1.3.2.1", nome: "Deslizamentos de solo e/ou rocha" },
+    { id: "1.1.3.3.1", nome: "Corridas de massa - Solo/Lama" },
+    { id: "1.1.3.3.2", nome: "Corridas de massa - Rocha/Detrito" },
+    { id: "1.1.3.4.0", nome: "Subsidências e colapsos" },
+    { id: "1.1.4.1.0", nome: "Erosão costeira/Marinha" },
+    { id: "1.1.4.2.0", nome: "Erosão de margem fluvial" },
+    { id: "1.1.4.3.1", nome: "Erosão continental - Laminar" },
+    { id: "1.1.4.3.2", nome: "Erosão continental - Ravinas" },
+    { id: "1.1.4.3.3", nome: "Erosão continental - Boçorocas" },
+    // NATURAIS - Hidrológicos
+    { id: "1.2.1.0.0", nome: "Inundações" },
+    { id: "1.2.2.0.0", nome: "Enxurradas" },
+    { id: "1.2.3.0.0", nome: "Alagamentos" },
+    // NATURAIS - Meteorológicos
+    { id: "1.3.1.1.1", nome: "Ciclones - Ventos costeiros (mobilidade de dunas)" },
+    { id: "1.3.1.1.2", nome: "Ciclones - Marés de tempestade (ressaca)" },
+    { id: "1.3.1.2.0", nome: "Frentes / Zonas de convergência" },
+    { id: "1.3.2.1.1", nome: "Tempestade local/Convectiva - Tornados" },
+    { id: "1.3.2.1.2", nome: "Tempestade local/Convectiva - Tempestade de raios" },
+    { id: "1.3.2.1.3", nome: "Tempestade local/Convectiva - Granizo" },
+    { id: "1.3.2.1.4", nome: "Tempestade local/Convectiva - Chuvas intensas" },
+    { id: "1.3.2.1.5", nome: "Tempestade local/Convectiva - Vendaval" },
+    { id: "1.3.3.1.0", nome: "Onda de calor" },
+    { id: "1.3.3.2.1", nome: "Onda de frio - Friagem" },
+    { id: "1.3.3.2.2", nome: "Onda de frio - Geadas" },
+    // NATURAIS - Climatológicos
+    { id: "1.4.1.1.0", nome: "Estiagem" },
+    { id: "1.4.1.2.0", nome: "Seca" },
+    { id: "1.4.1.3.1", nome: "Incêndios em áreas protegidas" },
+    { id: "1.4.1.3.2", nome: "Incêndios em áreas não protegidas" },
+    { id: "1.4.1.4.0", nome: "Baixa umidade do ar" },
+    // NATURAIS - Biológicos
+    { id: "1.5.1.1.0", nome: "Doenças infecciosas virais" },
+    { id: "1.5.1.2.0", nome: "Doenças infecciosas bacterianas" },
+    { id: "1.5.1.3.0", nome: "Doenças infecciosas parasíticas" },
+    { id: "1.5.1.4.0", nome: "Doenças infecciosas fúngicas" },
+    { id: "1.5.2.1.0", nome: "Infestações de animais" },
+    { id: "1.5.2.2.1", nome: "Infestações de algas - Marés vermelhas" },
+    { id: "1.5.2.2.2", nome: "Infestações de algas - Cianobactérias" },
+    { id: "1.5.2.3.0", nome: "Outras infestações" },
+    // TECNOLÓGICOS
+    { id: "2.1.1.1.0", nome: "Queda de satélite (radionuclídeos)" },
+    { id: "2.1.2.1.0", nome: "Fontes radioativas em processos de produção" },
+    { id: "2.1.3.1.0", nome: "Outras fontes de liberação de radionuclídeos" },
+    { id: "2.2.1.1.0", nome: "Liberação de produtos químicos para a atmosfera" },
+    { id: "2.2.2.1.0", nome: "Liberação de produtos químicos nos sistemas de água potável" },
+    { id: "2.2.2.2.0", nome: "Derramamento de produtos químicos em ambiente lacustre, fluvial ou marinho" },
+    { id: "2.2.3.1.0", nome: "Liberação de produtos químicos em consequência de ações militares" },
+    { id: "2.2.4.1.0", nome: "Transporte de produtos perigosos - Rodoviário" },
+    { id: "2.2.4.2.0", nome: "Transporte de produtos perigosos - Ferroviário" },
+    { id: "2.2.4.3.0", nome: "Transporte de produtos perigosos - Aéreo" },
+    { id: "2.2.4.4.0", nome: "Transporte de produtos perigosos - Dutoviário" },
+    { id: "2.2.4.5.0", nome: "Transporte de produtos perigosos - Marítimo" },
+    { id: "2.2.4.6.0", nome: "Transporte de produtos perigosos - Aquaviário" },
+    { id: "2.3.1.1.0", nome: "Incêndios em plantas e distritos industriais, parques e depósitos" },
+    { id: "2.3.1.2.0", nome: "Incêndios em aglomerados residenciais" },
+    { id: "2.4.1.0.0", nome: "Colapso de edificações" },
+    { id: "2.4.2.0.0", nome: "Rompimento/colapso de barragens" },
+    { id: "2.5.1.0.0", nome: "Transporte de passageiros/cargas não perigosas - Rodoviário" },
+    { id: "2.5.2.0.0", nome: "Transporte de passageiros/cargas não perigosas - Ferroviário" },
+    { id: "2.5.3.0.0", nome: "Transporte de passageiros/cargas não perigosas - Aéreo" },
+    { id: "2.5.4.0.0", nome: "Transporte de passageiros/cargas não perigosas - Marítimo" },
+    { id: "2.5.5.0.0", nome: "Transporte de passageiros/cargas não perigosas - Aquaviário" },
+];
+
 interface FideProps {
     fideData: any;
     setFideData: (data: any) => void;
@@ -15,6 +93,9 @@ export default function Fide({ fideData = {}, setFideData, errors = {}, clearErr
         setFideData((prev: any) => ({ ...prev, [field]: value }));
         clearError?.(field);
     };
+
+    // Pega o nome do COBRADE atual para exibir de forma automática no readonly
+    const cobradeAtual = LISTA_COBRADE.find(c => c.id === fideData.cobrade)?.nome || "";
 
     // Classes utilitárias padronizadas responsivas (aumentam no desktop)
     const sectionHeader = "bg-slate-500 text-white font-bold p-3 text-sm md:text-base uppercase rounded-t-md mt-8";
@@ -96,8 +177,11 @@ export default function Fide({ fideData = {}, setFideData, errors = {}, clearErr
                         <label className={labelClass}>SELECIONAR A TIPIFICAÇÃO (COBRADE)*</label>
                         <select className={getInputClass('cobrade')} value={fideData.cobrade || ""} onChange={(e) => handleChange('cobrade', e.target.value)}>
                             <option value="">Selecione o tipo de COBRADE</option>
-                            <option value="1.3.2.1.4">1.3.2.1.4 - Tempestade Local/Convectiva - Chuvas Intensas</option>
-                            <option value="1.4.1.1.0">1.4.1.1.0 - Estiagem</option>
+                            {LISTA_COBRADE.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                    {item.id} - {item.nome}
+                                </option>
+                            ))}
                         </select>
                         <FieldError field="cobrade" />
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
@@ -107,7 +191,7 @@ export default function Fide({ fideData = {}, setFideData, errors = {}, clearErr
                             </div>
                             <div>
                                 <label className={labelClass}>Denominação</label>
-                                <input type="text" readOnly className={inputClass + " bg-slate-100"} value={fideData.cobrade ? "Preenchimento Automático" : ""} />
+                                <input type="text" readOnly className={inputClass + " bg-slate-100"} placeholder="Preenchimento Automático" value={cobradeAtual} />
                             </div>
                         </div>
                     </div>

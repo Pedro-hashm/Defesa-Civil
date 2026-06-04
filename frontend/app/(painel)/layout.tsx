@@ -158,9 +158,15 @@ export default function PainelLayout({ children }: { children: React.ReactNode }
     }, []);
 
     const handleLogout = () => {
+        // Limpa Storage do front
         localStorage.removeItem("defesa-civil.token");
         localStorage.removeItem("defesa-civil.usuario");
         localStorage.removeItem("defesa-civil.expira_em");
+        
+        // Limpa os cookies lidos pelo Middleware do Next
+        document.cookie = "defesa-civil.token=; path=/; max-age=0";
+        document.cookie = "defesa-civil.cargo=; path=/; max-age=0";
+
         router.push("/");
     };
 
