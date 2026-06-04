@@ -5,13 +5,15 @@ import AffectedAreasMap from "@/components/maps/AffectedAreasMap";
 interface FideProps {
     fideData: any;
     setFideData: (data: any) => void;
+    errors?: Record<string, string>;
+    clearError?: (field: string) => void;
 }
 
-export default function Fide({ fideData = {}, setFideData }: FideProps) {
-    
-    // Função auxiliar para atualizar o estado de forma mais limpa
+export default function Fide({ fideData = {}, setFideData, errors = {}, clearError }: FideProps) {
+
     const handleChange = (field: string, value: any) => {
         setFideData((prev: any) => ({ ...prev, [field]: value }));
+        clearError?.(field);
     };
 
     // Classes utilitárias padronizadas responsivas (aumentam no desktop)
@@ -22,6 +24,12 @@ export default function Fide({ fideData = {}, setFideData }: FideProps) {
     const tdClass = "border border-slate-300 p-3 text-sm md:text-base";
     const helperText = "text-[10px] md:text-xs text-slate-500 leading-tight";
     const labelClass = "block text-xs md:text-sm font-bold text-slate-700 mb-1.5";
+
+    const getInputClass = (field: string) =>
+        `${inputClass}${errors[field] ? " !border-red-500 focus:!border-red-500 focus:!ring-red-500" : ""}`;
+
+    const FieldError = ({ field }: { field: string }) =>
+        errors[field] ? <p className="mt-1 text-xs text-red-600">{errors[field]}</p> : null;
 
     return (
         <div className="space-y-8">
@@ -35,37 +43,44 @@ export default function Fide({ fideData = {}, setFideData }: FideProps) {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div>
                             <label className={labelClass}>UF:</label>
-                            <select className={inputClass} value={fideData.uf || ""} onChange={(e) => handleChange('uf', e.target.value)}>
+                            <select className={getInputClass('uf')} value={fideData.uf || ""} onChange={(e) => handleChange('uf', e.target.value)}>
                                 <option value="">Selecione...</option>
                                 <option value="PE">PE</option>
                             </select>
+                            <FieldError field="uf" />
                         </div>
                         <div className="md:col-span-2">
                             <label className={labelClass}>Município:</label>
-                            <input type="text" className={inputClass} value={fideData.municipio || ""} onChange={(e) => handleChange('municipio', e.target.value)} />
+                            <input type="text" className={getInputClass('municipio')} value={fideData.municipio || ""} onChange={(e) => handleChange('municipio', e.target.value)} />
+                            <FieldError field="municipio" />
                         </div>
                         <div>
                             <label className={labelClass}>Código IBGE:</label>
-                            <input type="text" className={inputClass} value={fideData.codigo_ibge || ""} onChange={(e) => handleChange('codigo_ibge', e.target.value)} />
+                            <input type="text" className={getInputClass('codigo_ibge')} value={fideData.codigo_ibge || ""} onChange={(e) => handleChange('codigo_ibge', e.target.value)} />
+                            <FieldError field="codigo_ibge" />
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div>
                             <label className={labelClass + " text-center"}>População (habitantes)</label>
-                            <input type="number" className={inputClass} value={fideData.populacao || ""} onChange={(e) => handleChange('populacao', e.target.value)} />
+                            <input type="number" className={getInputClass('populacao')} value={fideData.populacao || ""} onChange={(e) => handleChange('populacao', e.target.value)} />
+                            <FieldError field="populacao" />
                         </div>
                         <div>
                             <label className={labelClass + " text-center"}>PIB (Anual)</label>
-                            <input type="text" className={inputClass} value={fideData.pib_anual || ""} onChange={(e) => handleChange('pib_anual', e.target.value)} />
+                            <input type="text" className={getInputClass('pib_anual')} value={fideData.pib_anual || ""} onChange={(e) => handleChange('pib_anual', e.target.value)} />
+                            <FieldError field="pib_anual" />
                         </div>
                         <div>
                             <label className={labelClass + " text-center"}>Orçamento (anual)</label>
-                            <input type="text" className={inputClass} value={fideData.orcamento_anual || ""} onChange={(e) => handleChange('orcamento_anual', e.target.value)} />
+                            <input type="text" className={getInputClass('orcamento_anual')} value={fideData.orcamento_anual || ""} onChange={(e) => handleChange('orcamento_anual', e.target.value)} />
+                            <FieldError field="orcamento_anual" />
                         </div>
                         <div>
                             <label className={labelClass + " text-center"}>Arrecadação (anual)</label>
-                            <input type="text" className={inputClass} value={fideData.arrecadacao_anual || ""} onChange={(e) => handleChange('arrecadacao_anual', e.target.value)} />
+                            <input type="text" className={getInputClass('arrecadacao_anual')} value={fideData.arrecadacao_anual || ""} onChange={(e) => handleChange('arrecadacao_anual', e.target.value)} />
+                            <FieldError field="arrecadacao_anual" />
                         </div>
                     </div>
                 </div>
@@ -79,12 +94,13 @@ export default function Fide({ fideData = {}, setFideData }: FideProps) {
                     <h3 className={sectionHeader + " mt-0"}>2. TIPIFICAÇÃO</h3>
                     <div className="border border-slate-300 border-t-0 p-5 bg-slate-50/50 flex-1">
                         <label className={labelClass}>SELECIONAR A TIPIFICAÇÃO (COBRADE)*</label>
-                        <select className={inputClass + " mb-5"} value={fideData.cobrade || ""} onChange={(e) => handleChange('cobrade', e.target.value)}>
+                        <select className={getInputClass('cobrade')} value={fideData.cobrade || ""} onChange={(e) => handleChange('cobrade', e.target.value)}>
                             <option value="">Selecione o tipo de COBRADE</option>
                             <option value="1.3.2.1.4">1.3.2.1.4 - Tempestade Local/Convectiva - Chuvas Intensas</option>
                             <option value="1.4.1.1.0">1.4.1.1.0 - Estiagem</option>
                         </select>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <FieldError field="cobrade" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
                             <div>
                                 <label className={labelClass}>COBRADE</label>
                                 <input type="text" readOnly className={inputClass + " bg-slate-100"} value={fideData.cobrade || ""} />
@@ -103,19 +119,23 @@ export default function Fide({ fideData = {}, setFideData }: FideProps) {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
                             <div>
                                 <label className={labelClass + " text-center"}>Dia</label>
-                                <input type="text" className={inputClass + " text-center"} placeholder="DD" value={fideData.dia || ""} onChange={(e) => handleChange('dia', e.target.value)} />
+                                <input type="text" className={getInputClass('dia') + " text-center"} placeholder="DD" value={fideData.dia || ""} onChange={(e) => handleChange('dia', e.target.value)} />
+                                <FieldError field="dia" />
                             </div>
                             <div>
                                 <label className={labelClass + " text-center"}>Mês</label>
-                                <input type="text" className={inputClass + " text-center"} placeholder="MM" value={fideData.mes || ""} onChange={(e) => handleChange('mes', e.target.value)} />
+                                <input type="text" className={getInputClass('mes') + " text-center"} placeholder="MM" value={fideData.mes || ""} onChange={(e) => handleChange('mes', e.target.value)} />
+                                <FieldError field="mes" />
                             </div>
                             <div>
                                 <label className={labelClass + " text-center"}>Ano</label>
-                                <input type="text" className={inputClass + " text-center"} placeholder="AAAA" value={fideData.ano || ""} onChange={(e) => handleChange('ano', e.target.value)} />
+                                <input type="text" className={getInputClass('ano') + " text-center"} placeholder="AAAA" value={fideData.ano || ""} onChange={(e) => handleChange('ano', e.target.value)} />
+                                <FieldError field="ano" />
                             </div>
                             <div>
                                 <label className={labelClass + " text-center"}>Horário</label>
-                                <input type="text" className={inputClass + " text-center"} placeholder="HH:MM" value={fideData.horario || ""} onChange={(e) => handleChange('horario', e.target.value)} />
+                                <input type="text" className={getInputClass('horario') + " text-center"} placeholder="HH:MM" value={fideData.horario || ""} onChange={(e) => handleChange('horario', e.target.value)} />
+                                <FieldError field="horario" />
                             </div>
                         </div>
                     </div>

@@ -73,7 +73,9 @@ function SimuladorContent() {
     const searchParams = useSearchParams();
     const editId = searchParams.get("edit"); // Lemos o ID da URL
 
-    const [fideData, setFideData] = useState({});
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const [fideData, setFideData] = useState<any>({});
+    const [fideErrors, setFideErrors] = useState<Record<string, string>>({});
     const [dmateData, setDmateData] = useState({});
     const [isLoading, setIsLoading] = useState(!!editId);
     const [isSaving, setIsSaving] = useState(false);
@@ -116,8 +118,125 @@ function SimuladorContent() {
         carregarTentativa();
     }, [editId]);
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    function validarFide(data: any): Record<string, string> {
+        const erros: Record<string, string> = {};
+
+        if (!data.uf) erros.uf = "UF é obrigatória.";
+        if (!String(data.municipio ?? "").trim()) erros.municipio = "Município é obrigatório.";
+
+        const ibgeStr = String(data.codigo_ibge ?? "").trim();
+        if (!ibgeStr) {
+            erros.codigo_ibge = "Código IBGE é obrigatório.";
+        } else if (!/^\d{6,7}$/.test(ibgeStr)) {
+            erros.codigo_ibge = "Código IBGE deve ter 6 ou 7 dígitos numéricos.";
+        }
+
+        if (data.populacao === "" || data.populacao === undefined || data.populacao === null) {
+            erros.populacao = "População é obrigatória.";
+        } else if (Number(data.populacao) <= 0) {
+            erros.populacao = "População deve ser maior que zero.";
+        }
+
+        const isMonetary = (v: unknown) => {
+            const s = String(v ?? "").trim().replace(/^R\$\s*/, "").trim();
+            return s !== "" && /^[\d.,]+$/.test(s) && /\d/.test(s);
+        };
+
+        if (!String(data.pib_anual ?? "").trim()) {
+            erros.pib_anual = "PIB anual é obrigatório.";
+        } else if (!isMonetary(data.pib_anual)) {
+            erros.pib_anual = "PIB anual inválido. Use valor monetário (ex: 12.700,50).";
+        }
+
+        if (!String(data.orcamento_anual ?? "").trim()) {
+            erros.orcamento_anual = "Orçamento anual é obrigatório.";
+        } else if (!isMonetary(data.orcamento_anual)) {
+            erros.orcamento_anual = "Orçamento anual inválido. Use valor monetário (ex: 12.700,50).";
+        }
+
+        if (!String(data.arrecadacao_anual ?? "").trim()) {
+            erros.arrecadacao_anual = "Arrecadação anual é obrigatória.";
+        } else if (!isMonetary(data.arrecadacao_anual)) {
+            erros.arrecadacao_anual = "Arrecadação anual inválida. Use valor monetário (ex: 12.700,50).";
+        }
+
+        if (!data.cobrade) erros.cobrade = "COBRADE é obrigatório.";
+
+        const diaStr = String(data.dia ?? "").trim();
+        const mesStr = String(data.mes ?? "").trim();
+        const anoStr = String(data.ano ?? "").trim();
+
+        if (!diaStr) {
+            erros.dia = "Dia é obrigatório.";
+        } else {
+            const dia = Number(diaStr);
+            if (!Number.isInteger(dia) || dia < 1 || dia > 31) erros.dia = "Dia inválido (1–31).";
+        }
+
+        if (!mesStr) {
+            erros.mes = "Mês é obrigatório.";
+        } else {
+            const mes = Number(mesStr);
+            if (!Number.isInteger(mes) || mes < 1 || mes > 12) erros.mes = "Mês inválido (1–12).";
+        }
+
+        if (!anoStr) {
+            erros.ano = "Ano é obrigatório.";
+        } else {
+            const ano = Number(anoStr);
+            if (!Number.isInteger(ano) || ano < 1900 || ano > 2100) erros.ano = "Ano inválido.";
+        }
+
+        if (!erros.dia && !erros.mes && !erros.ano && diaStr && mesStr && anoStr) {
+            const dia = Number(diaStr);
+            const mes = Number(mesStr);
+            const ano = Number(anoStr);
+            const bissexto = (ano % 4 === 0 && ano % 100 !== 0) || ano % 400 === 0;
+            const maxDias = [0, 31, bissexto ? 29 : 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31][mes];
+            if (dia > maxDias) {
+                const nomesMes = ["", "janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+                if (mes === 2) {
+                    erros.dia = bissexto
+                        ? `Fevereiro de ${ano} tem até 29 dias (ano bissexto).`
+                        : `Fevereiro de ${ano} tem até 28 dias.`;
+                } else {
+                    const nome = nomesMes[mes];
+                    erros.dia = `${nome.charAt(0).toUpperCase() + nome.slice(1)} tem até ${maxDias} dias.`;
+                }
+            }
+        }
+
+        const horarioStr = String(data.horario ?? "").trim();
+        if (!horarioStr) {
+            erros.horario = "Horário é obrigatório.";
+        } else if (!/^([01]\d|2[0-3]):([0-5]\d)$/.test(horarioStr)) {
+            erros.horario = "Horário inválido (use HH:MM).";
+        }
+
+        return erros;
+    }
+
+    const clearFideError = (field: string) => {
+        setFideErrors((prev) => {
+            const next = { ...prev };
+            delete next[field];
+            return next;
+        });
+    };
+
     const handleSubmit = async (e: React.FormEvent, isDraft = false) => {
         e.preventDefault();
+
+        if (!isDraft) {
+            const erros = validarFide(fideData);
+            if (Object.keys(erros).length > 0) {
+                setFideErrors(erros);
+                return;
+            }
+        }
+
+        setFideErrors({});
         setIsSaving(true);
         
         // Sempre forçamos status "INICIADO" para avaliações futuras e zeramos erros anteriores
@@ -148,7 +267,14 @@ function SimuladorContent() {
                 body: JSON.stringify(payload)
             });
 
-            if (!res.ok) throw new Error("Erro ao salvar formulário");
+            if (!res.ok) {
+                let msg = `Erro ao salvar formulário (status ${res.status})`;
+                try {
+                    const errBody = await res.json() as { message?: string; error?: string };
+                    if (errBody.message ?? errBody.error) msg = errBody.message ?? errBody.error ?? msg;
+                } catch { /* ignore */ }
+                throw new Error(msg);
+            }
 
             alert(isDraft ? "Rascunho salvo com sucesso!" : "Formulário enviado para avaliação com sucesso!");
             
@@ -156,8 +282,12 @@ function SimuladorContent() {
             router.push("/minhas-respostas");
 
         } catch (error) {
-            console.error(error);
-            alert("Erro ao enviar dados para o servidor.");
+            console.warn(error);
+            let msg = error instanceof Error ? error.message : "Erro ao enviar dados para o servidor.";
+            if (msg.toLowerCase().includes("cargo insuficiente") || msg.toLowerCase().includes("acesso negado")) {
+                msg = "Apenas alunos podem enviar formulários. Faça login com uma conta de aluno para continuar.";
+            }
+            alert(msg);
         } finally {
             setIsSaving(false);
         }
@@ -217,7 +347,7 @@ function SimuladorContent() {
                                     1. Formulário de Informações do Desastre (FIDE)
                                 </h2>
                             </div>
-                            <Fide fideData={fideData} setFideData={setFideData} />
+                            <Fide fideData={fideData} setFideData={setFideData} errors={fideErrors} clearError={clearFideError} />
                         </div>
 
                         {/* SEÇÃO 2: DMATE */}
