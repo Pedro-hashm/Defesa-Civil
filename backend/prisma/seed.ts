@@ -197,6 +197,46 @@ const estruturaDmatePadrao: Prisma.InputJsonValue = {
   ],
 };
 
+/** Template Solicitação de Recursos — ajuda humanitária e metas (S2iD). */
+const estruturaSolicitacaoRecursosPadrao: Prisma.InputJsonValue = {
+  documento: 'SOLICITACAO_RECURSOS',
+  versao: '2026.1',
+  origem: 'SEDEC/MIDR',
+  secoes: [
+    {
+      id: '1',
+      titulo: 'Identificação do Desastre',
+      campos_esperados: ['uf', 'cobrade', 'data_ocorrencia'],
+    },
+    {
+      id: '2',
+      titulo: 'Tipo de Solicitação',
+      campos_esperados: ['tipo_solicitacao'],
+    },
+    {
+      id: '3',
+      titulo: 'População Afetada',
+      campos_esperados: [
+        'humanos_desabrigados',
+        'humanos_desalojados',
+        'humanos_afetados',
+        'municipios_contemplados',
+      ],
+    },
+    {
+      id: '4',
+      titulo: 'Meta e Itens Solicitados',
+      campos_esperados: [
+        'meta_titulo',
+        'meta_descricao',
+        'meta_pessoas',
+        'meta_periodo',
+        'itens_meta',
+      ],
+    },
+  ],
+};
+
 async function upsertFormulario(
   titulo: string,
   descricao: string,
@@ -254,6 +294,12 @@ async function main() {
     'DMATE — Padrão (SEDEC/MIDR)',
     'Declaração Municipal de Atuação Emergencial (DMATE) — caracterização da emergência, capacidade gerencial e medidas em curso. Complementa o FIDE no mesmo simulado.',
     estruturaDmatePadrao
+  );
+
+  await upsertFormulario(
+    'Solicitação de Recursos — Padrão (SEDEC/MIDR)',
+    'Formulário de Solicitação de Recursos (S2iD) — tipo de solicitação, população afetada e itens de meta para ajuda humanitária.',
+    estruturaSolicitacaoRecursosPadrao
   );
 
   console.log("Seed finalizado com sucesso!");

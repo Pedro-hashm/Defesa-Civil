@@ -192,7 +192,7 @@ export default function OrdensPage() {
 								<button
 									key={o.id}
 									onClick={() => selecionarOrdem(o)}
-									className={`w-full flex items-center justify-between p-3 rounded-lg text-left transition-colors ${
+									className={`w-full cursor-pointer flex items-center justify-between p-3 rounded-lg text-left transition-colors ${
 										ordemSelecionada?.id === o.id
 											? "bg-blue-50 border border-blue-200"
 											: "hover:bg-slate-50 border border-transparent"

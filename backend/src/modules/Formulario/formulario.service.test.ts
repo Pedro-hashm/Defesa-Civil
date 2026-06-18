@@ -126,9 +126,9 @@ describe("FormularioService — ciclo de formulários e tentativas", () => {
         data: expect.objectContaining({
           usuario_id: 10,
           formulario_id: 2,
-          status: StatusTentativa.FINALIZADO,
+          status: StatusTentativa.INICIADO,
           respostas: { identificacao: { uf: "PE", municipio: "Araripina" } },
-          finalizado_em: expect.any(Date),
+          finalizado_em: null,
         }),
         select: expect.any(Object),
       });

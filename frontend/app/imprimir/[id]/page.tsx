@@ -5,110 +5,15 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import Fide from "@/components/forms/Fide";
 import Dmate from "@/components/forms/Dmate";
-
-// ==========================================
-// FUNÇÃO ADAPTADORA (Nested JSON -> Flat State)
-// Converte o JSON complexo do Banco de Dados para o formato do Fide.tsx
-// ==========================================
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function adaptarFideParaPlano(d: any) {
-    if (!d || !d.identificacao) return d || {}; // Se já for plano ou vazio, retorna como está
-
-    const m = d.areaPopulacaoAfetada?.matriz_ocupacao || {};
-    const matLinhas = d.danosMateriais?.linhas || [];
-    
-    // Mapeador de Discriminacao de Danos Materiais
-    const matMap: Record<string, string> = {
-        'Unidades habitacionais': 'habitacionais',
-        'Instalacoes publicas de saude': 'saude',
-        'Instalacoes publicas de ensino': 'ensino',
-        'Instalacoes publicas prestadoras de outros servicos': 'outros_servicos',
-        'Instalacoes publicas de uso comunitario': 'comunitario',
-        'Obras de infraestrutura publica': 'infraestrutura'
-    };
-    
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const flatMat: any = {};
-    matLinhas.forEach((linha: any) => {
-        const key = matMap[linha.discriminacao];
-        if (key) {
-            flatMat[`mat_${key}_dan`] = linha.quantidadeDanificadas || 0;
-            flatMat[`mat_${key}_des`] = linha.quantidadeDestruidas || 0;
-            flatMat[`mat_${key}_val`] = linha.valorReais || 0;
-        }
-    });
-
-    return {
-        uf: d.identificacao?.uf,
-        municipio: d.identificacao?.municipio,
-        codigo_ibge: d.identificacao?.codigoIbge,
-        populacao: d.identificacao?.populacao,
-        pib_anual: d.identificacao?.pibAnual,
-        orcamento_anual: d.identificacao?.orcamentoAnual,
-        arrecadacao_anual: d.identificacao?.arrecadacaoAnual,
-        
-        cobrade: d.tipificacao?.cobrade,
-        dia: d.dataOcorrencia?.dia,
-        mes: d.dataOcorrencia?.mes,
-        ano: d.dataOcorrencia?.ano,
-        horario: d.dataOcorrencia?.horario,
-        
-        causas_efeitos: d.causasEfeitos,
-        
-        descricao_areas: d.areaPopulacaoAfetada?.descricao_areas_afetadas,
-        ocupacao_residencial: m.residencial,
-        ocupacao_comercial: m.comercial,
-        ocupacao_industrial: m.industrial,
-        'ocupacao_agrícola': m.agricola || m.agrícola,
-        'ocupacao_pecuária': m.pecuaria || m.pecuária,
-        ocupacao_extrativismo_vegetal: m.extrativismo_vegetal,
-        ocupacao_reserva_florestal_ou_apa: m.reserva_florestal_ou_apa,
-        ocupacao_mineração: m.mineracao || m.mineração,
-        'ocupacao_turismo_e_outras': m.turismo_e_outras,
-
-        humanos_mortos: d.danosHumanos?.mortos,
-        humanos_feridos: d.danosHumanos?.feridos,
-        humanos_enfermos: d.danosHumanos?.enfermos,
-        humanos_desabrigados: d.danosHumanos?.desabrigados,
-        humanos_desalojados: d.danosHumanos?.desalojados,
-        humanos_desaparecidos: d.danosHumanos?.desaparecidos,
-        humanos_outros: d.danosHumanos?.outrosAfetados,
-        desc_humanos: d.danosHumanos?.descricao,
-
-        ...flatMat,
-        desc_materiais: d.danosMateriais?.descricao,
-
-        amb_agua_sn: d.danosAmbientais?.poluicaoAgua ? 'sim' : 'nao',
-        amb_ar_sn: d.danosAmbientais?.poluicaoAr ? 'sim' : 'nao',
-        amb_solo_sn: d.danosAmbientais?.poluicaoSolo ? 'sim' : 'nao',
-        amb_hidrico_sn: d.danosAmbientais?.exaurimentoHidrico ? 'sim' : 'nao',
-        amb_incendio_sn: d.danosAmbientais?.incendiosApaApp ? 'sim' : 'nao',
-        amb_agua_pop: d.danosAmbientais?.descricaoPopulacaoAtingida,
-        amb_ar_pop: d.danosAmbientais?.descricaoPopulacaoAtingida,
-        amb_solo_pop: d.danosAmbientais?.descricaoPopulacaoAtingida,
-        amb_hidrico_pop: d.danosAmbientais?.descricaoPopulacaoAtingida,
-        amb_incendio_area: d.danosAmbientais?.descricaoPopulacaoAtingida,
-        desc_ambientais: d.danosAmbientais?.descricao,
-
-        prej_pub_agua: d.prejuizosEconomicosPublicos?.porServico?.agua,
-        prej_pub_lixo: d.prejuizosEconomicosPublicos?.porServico?.lixo,
-        prej_pub_saude: d.prejuizosEconomicosPublicos?.porServico?.saude,
-        prej_pub_ensino: d.prejuizosEconomicosPublicos?.porServico?.ensino,
-        prej_pub_esgoto: d.prejuizosEconomicosPublicos?.porServico?.esgoto,
-        prej_pub_energia: d.prejuizosEconomicosPublicos?.porServico?.energia,
-        prej_pub_telecom: d.prejuizosEconomicosPublicos?.porServico?.telecom,
-        prej_pub_seguranca: d.prejuizosEconomicosPublicos?.porServico?.seguranca,
-        prej_pub_transporte: d.prejuizosEconomicosPublicos?.porServico?.transporte,
-        desc_prej_pub: d.prejuizosEconomicosPublicos?.descricao,
-
-        prej_priv_agricultura: d.prejuizosEconomicosPrivados?.agricultura,
-        prej_priv_pecuaria: d.prejuizosEconomicosPrivados?.pecuaria,
-        prej_priv_industria: d.prejuizosEconomicosPrivados?.industria,
-        prej_priv_comercio: d.prejuizosEconomicosPrivados?.comercio,
-        prej_priv_servicos: d.prejuizosEconomicosPrivados?.servicos,
-        desc_prej_priv: d.prejuizosEconomicosPrivados?.descricao,
-    };
-}
+import Recursos from "@/components/forms/Recursos";
+import { adaptarFideParaPlano } from "@/lib/fideAdapter";
+import {
+  detectarTipoFormulario,
+  extrairRaizRecursos,
+  rotuloTipoFormulario,
+} from "@/lib/formularios";
+import { parseRespostas } from "@/lib/json";
+import { API_URL } from "@/lib/api";
 
 export default function ImprimirDocumentoPage() {
     const params = useParams();
@@ -121,9 +26,8 @@ export default function ImprimirDocumentoPage() {
         async function carregarDados() {
             try {
                 const token = localStorage.getItem("defesa-civil.token");
-                const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
-                const url = `${baseUrl}/tentativas/${params.id}`; 
-                
+                const url = `${API_URL}/tentativas/${params.id}`;
+
                 const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
                 if (!res.ok) throw new Error(`Erro HTTP ${res.status}: Não foi possível carregar.`);
 
@@ -148,28 +52,34 @@ export default function ImprimirDocumentoPage() {
         );
     }
 
-    // Processamento Seguro do JSON
-    let respostasObj = tentativa.respostas;
-    if (typeof respostasObj === "string") {
-        try { respostasObj = JSON.parse(respostasObj); } catch (e) { respostasObj = {}; }
-    }
+    const respostasObj = parseRespostas(tentativa.respostas);
+    const tipo = detectarTipoFormulario(tentativa.formulario?.titulo, respostasObj);
+    const tituloDocumento = rotuloTipoFormulario(tipo);
 
-    // Se o backend jogou os dados soltos na raiz (Ex: JSON da sua mensagem) 
-    // ou se agrupou corretamente em "fide": { ... }
-    const raizFide = respostasObj.identificacao ? respostasObj : (respostasObj.fide || {});
-    const raizDmate = respostasObj.caracterizacao_emergencia ? respostasObj : (respostasObj.dmate || {});
+    const raizFide = respostasObj.identificacao
+        ? respostasObj
+        : (respostasObj.fide as Record<string, unknown> | undefined) || {};
+    const raizDmate = respostasObj.caracterizacao_emergencia
+        ? respostasObj
+        : (respostasObj.dmate as Record<string, unknown> | undefined) || {};
 
-    // Passamos pela função adaptadora para achatar
     const fideDataSeguro = adaptarFideParaPlano(raizFide);
-    const dmateDataSeguro = raizDmate; // O DMATE costuma ser mais simples, passamos direto.
+    const dmateDataSeguro = raizDmate;
+    const recursosDataSeguro = extrairRaizRecursos(respostasObj);
+
+    const mostrarFide = tipo === "FIDE" || tipo === "FIDE_DMATE";
+    const mostrarDmate = tipo === "DMATE" || tipo === "FIDE_DMATE";
+    const mostrarRecursos = tipo === "RECURSOS";
 
     return (
         <div className="min-h-screen bg-white">
-            
             <div className="print:hidden bg-slate-800 p-4 flex items-center justify-between sticky top-0 z-50 shadow-md">
                 <div className="text-white font-bold flex items-center gap-3">
                     <span className="bg-white/20 px-3 py-1 rounded-md text-sm">
                         Aluno: {tentativa.usuario?.nome || "Não identificado"}
+                    </span>
+                    <span className="bg-white/10 px-3 py-1 rounded-md text-sm">
+                        {tituloDocumento}
                     </span>
                 </div>
                 <button onClick={() => window.print()} className="bg-pe-blue hover:bg-blue-600 text-white font-bold py-2 px-6 rounded-lg shadow-sm flex items-center gap-2">
@@ -181,27 +91,38 @@ export default function ImprimirDocumentoPage() {
             </div>
 
             <div className="max-w-[1000px] mx-auto p-8 print:p-0 print:max-w-full">
-                
                 <div className="flex items-center gap-4 mb-8 border-b-2 border-slate-800 pb-4">
-                    <Image src="/img/logo-defesa-civil.jpg" alt="Defesa Civil" width={60} height={60} />
+                    <Image src="/img/logo-defesa-civil1.jpg" alt="Defesa Civil" width={60} height={60} />
                     <div>
                         <h1 className="text-xl font-bold text-slate-800 uppercase tracking-wide">Sistema Nacional de Proteção e Defesa Civil - SINPDEC</h1>
-                        <p className="text-sm text-slate-500">Documento Oficial de Simulação - {new Date(tentativa.finalizado_em || tentativa.iniciado_em || new Date()).toLocaleDateString('pt-BR')}</p>
+                        <p className="text-sm text-slate-500">
+                            {tituloDocumento} — {new Date(tentativa.finalizado_em || tentativa.iniciado_em || new Date()).toLocaleDateString('pt-BR')}
+                        </p>
                     </div>
                 </div>
 
                 <div className="pointer-events-none opacity-100">
-                    <div className="mb-8">
-                        <h2 className="text-2xl font-bold text-center text-[#00b0f0] mb-6 uppercase">Formulário de Informações do Desastre - FIDE</h2>
-                        <Fide fideData={fideDataSeguro} setFideData={() => {}} />
-                    </div>
+                    {mostrarRecursos ? (
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-bold text-center text-[#00b0f0] mb-6 uppercase">Solicitação de Recursos</h2>
+                            <Recursos data={recursosDataSeguro} setData={() => {}} />
+                        </div>
+                    ) : null}
 
-                    <div className="break-before-page mt-16 pt-16 border-t-2 border-dashed border-slate-300 print:border-none print:mt-0 print:pt-0">
-                        <h2 className="text-2xl font-bold text-center text-[#00b0f0] mb-6 uppercase">Declaração Municipal de Atuação Emergencial - DMATE</h2>
-                        <Dmate dmateData={dmateDataSeguro} setDmateData={() => {}} />
-                    </div>
+                    {mostrarFide ? (
+                        <div className="mb-8">
+                            <h2 className="text-2xl font-bold text-center text-[#00b0f0] mb-6 uppercase">Formulário de Informações do Desastre - FIDE</h2>
+                            <Fide fideData={fideDataSeguro} setFideData={() => {}} />
+                        </div>
+                    ) : null}
+
+                    {mostrarDmate ? (
+                        <div className={`${mostrarFide ? "break-before-page mt-16 pt-16 border-t-2 border-dashed border-slate-300 print:border-none print:mt-0 print:pt-0" : "mb-8"}`}>
+                            <h2 className="text-2xl font-bold text-center text-[#00b0f0] mb-6 uppercase">Declaração Municipal de Atuação Emergencial - DMATE</h2>
+                            <Dmate dmateData={dmateDataSeguro} setDmateData={() => {}} />
+                        </div>
+                    ) : null}
                 </div>
-
             </div>
         </div>
     );

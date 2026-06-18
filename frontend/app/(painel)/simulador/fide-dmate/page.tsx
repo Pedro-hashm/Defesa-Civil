@@ -5,68 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import Fide from "@/components/forms/Fide";
 import Dmate from "@/components/forms/Dmate";
-
-// ==========================================
-// DESCOMPACTADOR PROFUNDO (Deep Parse)
-// Garante que o JSON vire Objeto real, não importa como o Prisma tenha salvo
-// ==========================================
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function deepParseJSON(obj: any): any {
-    if (typeof obj === 'string') {
-        try {
-            return deepParseJSON(JSON.parse(obj));
-        } catch (e) {
-            return obj; // Se não for JSON válido, retorna a string pura
-        }
-    } else if (obj !== null && typeof obj === 'object') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const newObj: any = Array.isArray(obj) ? [] : {};
-        for (const key in obj) {
-            newObj[key] = deepParseJSON(obj[key]);
-        }
-        return newObj;
-    }
-    return obj;
-}
-
-// Adaptador para casos de JSON antigos/profundos
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function adaptarParaFidePlano(d: any) {
-    if (!d || !d.identificacao) return d || {}; 
-    
-    const m = d.areaPopulacaoAfetada?.matriz_ocupacao || {};
-    const matLinhas = d.danosMateriais?.linhas || [];
-    const matMap: Record<string, string> = {
-        'Unidades habitacionais': 'habitacionais',
-        'Instalacoes publicas de saude': 'saude',
-        'Instalacoes publicas de ensino': 'ensino',
-        'Instalacoes publicas prestadoras de outros servicos': 'outros_servicos',
-        'Instalacoes publicas de uso comunitario': 'comunitario',
-        'Obras de infraestrutura publica': 'infraestrutura'
-    };
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const flatMat: any = {};
-    matLinhas.forEach((linha: any) => {
-        const key = matMap[linha.discriminacao];
-        if (key) {
-            flatMat[`mat_${key}_dan`] = linha.quantidadeDanificadas || 0;
-            flatMat[`mat_${key}_des`] = linha.quantidadeDestruidas || 0;
-            flatMat[`mat_${key}_val`] = linha.valorReais || 0;
-        }
-    });
-
-    return {
-        uf: d.identificacao?.uf, municipio: d.identificacao?.municipio, codigo_ibge: d.identificacao?.codigoIbge, populacao: d.identificacao?.populacao, pib_anual: d.identificacao?.pibAnual, orcamento_anual: d.identificacao?.orcamentoAnual, arrecadacao_anual: d.identificacao?.arrecadacaoAnual,
-        cobrade: d.tipificacao?.cobrade, dia: d.dataOcorrencia?.dia, mes: d.dataOcorrencia?.mes, ano: d.dataOcorrencia?.ano, horario: d.dataOcorrencia?.horario,
-        causas_efeitos: d.causasEfeitos, descricao_areas: d.areaPopulacaoAfetada?.descricao_areas_afetadas,
-        ocupacao_residencial: m.residencial, ocupacao_comercial: m.comercial, ocupacao_industrial: m.industrial, 'ocupacao_agrícola': m.agricola || m.agrícola, 'ocupacao_pecuária': m.pecuaria || m.pecuária, ocupacao_extrativismo_vegetal: m.extrativismo_vegetal, ocupacao_reserva_florestal_ou_apa: m.reserva_florestal_ou_apa, ocupacao_mineração: m.mineracao || m.mineração, 'ocupacao_turismo_e_outras': m.turismo_e_outras,
-        humanos_mortos: d.danosHumanos?.mortos, humanos_feridos: d.danosHumanos?.feridos, humanos_enfermos: d.danosHumanos?.enfermos, humanos_desabrigados: d.danosHumanos?.desabrigados, humanos_desalojados: d.danosHumanos?.desalojados, humanos_desaparecidos: d.danosHumanos?.desaparecidos, humanos_outros: d.danosHumanos?.outrosAfetados, desc_humanos: d.danosHumanos?.descricao,
-        ...flatMat, desc_materiais: d.danosMateriais?.descricao,
-        amb_agua_sn: d.danosAmbientais?.poluicaoAgua ? 'sim' : 'nao', amb_ar_sn: d.danosAmbientais?.poluicaoAr ? 'sim' : 'nao', amb_solo_sn: d.danosAmbientais?.poluicaoSolo ? 'sim' : 'nao', amb_hidrico_sn: d.danosAmbientais?.exaurimentoHidrico ? 'sim' : 'nao', amb_incendio_sn: d.danosAmbientais?.incendiosApaApp ? 'sim' : 'nao', amb_agua_pop: d.danosAmbientais?.descricaoPopulacaoAtingida, amb_ar_pop: d.danosAmbientais?.descricaoPopulacaoAtingida, amb_solo_pop: d.danosAmbientais?.descricaoPopulacaoAtingida, amb_hidrico_pop: d.danosAmbientais?.descricaoPopulacaoAtingida, amb_incendio_area: d.danosAmbientais?.descricaoPopulacaoAtingida, desc_ambientais: d.danosAmbientais?.descricao,
-        prej_pub_agua: d.prejuizosEconomicosPublicos?.porServico?.agua, prej_pub_lixo: d.prejuizosEconomicosPublicos?.porServico?.lixo, prej_pub_saude: d.prejuizosEconomicosPublicos?.porServico?.saude, prej_pub_ensino: d.prejuizosEconomicosPublicos?.porServico?.ensino, prej_pub_esgoto: d.prejuizosEconomicosPublicos?.porServico?.esgoto, prej_pub_energia: d.prejuizosEconomicosPublicos?.porServico?.energia, prej_pub_telecom: d.prejuizosEconomicosPublicos?.porServico?.telecom, prej_pub_seguranca: d.prejuizosEconomicosPublicos?.porServico?.seguranca, prej_pub_transporte: d.prejuizosEconomicosPublicos?.porServico?.transporte, desc_prej_pub: d.prejuizosEconomicosPublicos?.descricao,
-        prej_priv_agricultura: d.prejuizosEconomicosPrivados?.agricultura, prej_priv_pecuaria: d.prejuizosEconomicosPrivados?.pecuaria, prej_priv_industria: d.prejuizosEconomicosPrivados?.industria, prej_priv_comercio: d.prejuizosEconomicosPrivados?.comercio, prej_priv_servicos: d.prejuizosEconomicosPrivados?.servicos, desc_prej_priv: d.prejuizosEconomicosPrivados?.descricao,
-    };
-}
+import { adaptarFideParaPlano } from "@/lib/fideAdapter";
+import { deepParseJSON } from "@/lib/json";
 
 function SimuladorContent() {
     const router = useRouter();
@@ -114,7 +54,7 @@ function SimuladorContent() {
                 const raizFide = respostasSeguras.identificacao ? respostasSeguras : (respostasSeguras.fide || {});
                 const raizDmate = respostasSeguras.caracterizacao_emergencia ? respostasSeguras : (respostasSeguras.dmate || {});
 
-                setFideData(adaptarParaFidePlano(raizFide));
+                setFideData(adaptarFideParaPlano(raizFide));
                 setDmateData(raizDmate);
                 
             } catch (error) {

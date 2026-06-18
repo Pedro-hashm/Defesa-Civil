@@ -3,19 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatarDataBR } from "@/lib/tentativas";
-
-function getBadgeClass(status: string) {
-  switch (status) {
-    case "FINALIZADO":
-      return "border-emerald-200 bg-emerald-50 text-emerald-700";
-    case "INICIADO":
-      return "border-amber-200 bg-amber-50 text-amber-700";
-    case "ERRO":
-      return "border-red-200 bg-red-50 text-red-700";
-    default:
-      return "border-slate-200 bg-slate-50 text-slate-600";
-  }
-}
+import { getBadgeClassStatus } from "@/lib/display";
+import {
+  detectarTipoFormulario,
+  rotaEdicaoTentativa,
+  rotuloTipoFormulario,
+} from "@/lib/formularios";
 
 export default function MinhasRespostasPage() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -63,7 +56,7 @@ export default function MinhasRespostasPage() {
         </div>
         <div className="flex gap-2">
           <Link
-            href="/simulador/fide-dmate"
+            href="/simulador"
             className="inline-flex items-center rounded-lg border border-[#003882] px-4 py-2.5 text-sm font-bold text-[#003882] transition hover:bg-[#003882]/5"
           >
             + Nova Simulação
@@ -90,20 +83,32 @@ export default function MinhasRespostasPage() {
         </div>
       ) : (
         <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {tentativas.map((tentativa) => (
+          {tentativas.map((tentativa) => {
+            const tipoFormulario = detectarTipoFormulario(
+              tentativa.formulario?.titulo,
+              tentativa.respostas
+            );
+            const rotaEdicao = rotaEdicaoTentativa(tentativa.id, tipoFormulario);
+
+            const tituloExibicao =
+              tipoFormulario === "RECURSOS"
+                ? rotuloTipoFormulario("RECURSOS")
+                : tentativa.formulario.titulo;
+
+            return (
             <div key={tentativa.id} className="flex flex-col rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden transition-all hover:shadow-md hover:border-slate-300">
               
               {/* Header do Card */}
               <div className="p-5 border-b border-slate-100 flex items-start justify-between gap-4">
                 <div>
-                  <h3 className="font-bold text-slate-900 line-clamp-2" title={tentativa.formulario.titulo}>
-                    {tentativa.formulario.titulo}
+                  <h3 className="font-bold text-slate-900 line-clamp-2" title={tituloExibicao}>
+                    {tituloExibicao}
                   </h3>
                   <p className="text-xs text-slate-500 mt-1">
                     Enviado em: {formatarDataBR(tentativa.iniciado_em)}
                   </p>
                 </div>
-                <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${getBadgeClass(tentativa.status)}`}>
+                <span className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider ${getBadgeClassStatus(tentativa.status)}`}>
                   {tentativa.status}
                 </span>
               </div>
@@ -153,8 +158,8 @@ export default function MinhasRespostasPage() {
                       Baixar PDF Aprovado
                     </a>
                   ) : (
-                    <Link 
-                      href={`/simulador/fide-dmate?edit=${tentativa.id}`}
+                    <Link
+                      href={rotaEdicao}
                       className={`w-full flex items-center justify-center gap-2 text-center rounded-lg px-4 py-2.5 text-sm font-bold shadow-sm transition-all border ${
                         tentativa.status === "ERRO" 
                           ? "bg-red-600 text-white hover:bg-red-700 border-red-600" 
@@ -178,7 +183,8 @@ export default function MinhasRespostasPage() {
               </div>
 
             </div>
-          ))}
+          );
+          })}
         </div>
       )}
     </div>
