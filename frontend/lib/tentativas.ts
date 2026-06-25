@@ -36,6 +36,7 @@ export type TentativaFormulario = {
 export type CatalogoSimulado = {
   fide?: FormularioResumo;
   dmate?: FormularioResumo;
+  recursos?: FormularioResumo;
 };
 
 export type FlatFormData = Record<string, string>;
@@ -56,6 +57,13 @@ const FALLBACK_FORMULARIOS: CatalogoSimulado = {
   dmate: {
     id: 2,
     titulo: "DMATE - Padrao (SEDEC/MIDR)",
+    descricao: null,
+    ativo: true,
+    criado_em: new Date().toISOString(),
+  },
+  recursos: {
+    id: 3,
+    titulo: "Solicitacao de Recursos - Padrao (SEDEC/MIDR)",
     descricao: null,
     ativo: true,
     criado_em: new Date().toISOString(),
@@ -147,8 +155,15 @@ export async function carregarCatalogoSimulado(): Promise<CatalogoSimulado> {
     const dmate =
       formularios.find((formulario) => contemDocumento(formulario, "DMATE")) ??
       FALLBACK_FORMULARIOS.dmate;
+    const recursos =
+      formularios.find(
+        (formulario) =>
+          contemDocumento(formulario, "SOLICITACAO_RECURSOS") ||
+          contemDocumento(formulario, "RECURSOS") ||
+          contemDocumento(formulario, "SOLICITA")
+      ) ?? FALLBACK_FORMULARIOS.recursos;
 
-    return { fide, dmate };
+    return { fide, dmate, recursos };
   } catch {
     return FALLBACK_FORMULARIOS;
   }
@@ -184,6 +199,40 @@ export async function listarTentativasSupervisor() {
   });
 
   return parseResponse<TentativaFormulario[]>(response);
+}
+
+export async function obterIdFormularioPorTermos(
+  ...termos: string[]
+): Promise<number> {
+  const response = await fetch(`${API_URL}/formularios`, {
+    headers: getHeaders(),
+  });
+  const formularios = await parseResponse<FormularioResumo[]>(response);
+
+  for (const termo of termos) {
+    const encontrado = formularios.find((formulario) =>
+      contemDocumento(formulario, termo)
+    );
+    if (encontrado) {
+      return encontrado.id;
+    }
+  }
+
+  throw new Error(
+    `Formulario nao encontrado no backend (${termos.join(", ")}).`
+  );
+}
+
+export async function obterIdFormularioRecursos(): Promise<number> {
+  try {
+    return await obterIdFormularioPorTermos(
+      "SOLICITACAO_RECURSOS",
+      "RECURSOS",
+      "SOLICITA"
+    );
+  } catch {
+    return FALLBACK_FORMULARIOS.recursos?.id ?? 3;
+  }
 }
 
 export function formatarDataBR(valor?: string | null) {

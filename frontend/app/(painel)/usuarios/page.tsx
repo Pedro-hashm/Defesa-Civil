@@ -442,7 +442,7 @@ export default function UsuariosPage() {
 								<button
 									key={u.id}
 									onClick={() => selecionarUsuario(u)}
-									className={`w-full flex items-center justify-between p-3 rounded-lg text-left transition-colors ${
+									className={`w-full cursor-pointer flex items-center justify-between p-3 rounded-lg text-left transition-colors ${
 										usuarioSelecionado?.id === u.id
 											? "bg-blue-50 border border-blue-200"
 											: "hover:bg-slate-50 border border-transparent"

@@ -60,3 +60,88 @@ a {
   color: var(--pe-blue-dark);
   text-decoration: underline;
 }
+
+/* Cursor em elementos interativos */
+button:not(:disabled),
+a[href],
+[role="button"]:not([aria-disabled="true"]),
+label[for],
+select,
+input[type="submit"],
+input[type="button"],
+input[type="reset"],
+input[type="checkbox"],
+input[type="radio"],
+summary {
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+}
+
+/* Sidebar: cores fixas, independente do tema do sistema */
+.app-sidebar {
+  color-scheme: light only;
+  background: linear-gradient(180deg, #003882 0%, #002456 100%) !important;
+  color: #ffffff !important;
+  border-color: #002456 !important;
+}
+
+.app-sidebar .sidebar-brand-title {
+  color: #ffffff !important;
+}
+
+.app-sidebar .sidebar-brand-subtitle {
+  color: #bfdbfe !important;
+}
+
+.app-sidebar .sidebar-section-label {
+  color: rgba(255, 255, 255, 0.55) !important;
+}
+
+.app-sidebar .sidebar-nav-link {
+  color: rgba(255, 255, 255, 0.88) !important;
+  text-decoration: none !important;
+}
+
+.app-sidebar .sidebar-nav-link:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.app-sidebar .sidebar-nav-link.is-active {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.app-sidebar .sidebar-logout {
+  color: #bfdbfe !important;
+}
+
+.app-sidebar .sidebar-logout:hover {
+  color: #ffffff !important;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.app-sidebar .sidebar-close {
+  color: #ffffff !important;
+}
+
+@media (forced-colors: active) {
+  .app-sidebar {
+    forced-color-adjust: none;
+    background: #003882 !important;
+    color: #ffffff !important;
+  }
+
+  .app-sidebar .sidebar-nav-link,
+  .app-sidebar .sidebar-logout,
+  .app-sidebar .sidebar-brand-title,
+  .app-sidebar .sidebar-brand-subtitle,
+  .app-sidebar .sidebar-section-label,
+  .app-sidebar .sidebar-close {
+    color: #ffffff !important;
+  }
+}

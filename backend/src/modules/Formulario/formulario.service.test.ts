@@ -126,9 +126,9 @@ describe("FormularioService — ciclo de formulários e tentativas", () => {
         data: expect.objectContaining({
           usuario_id: 10,
           formulario_id: 2,
-          status: StatusTentativa.FINALIZADO,
+          status: StatusTentativa.INICIADO,
           respostas: { identificacao: { uf: "PE", municipio: "Araripina" } },
-          finalizado_em: expect.any(Date),
+          finalizado_em: null,
         }),
         select: expect.any(Object),
       });
@@ -175,6 +175,80 @@ describe("FormularioService — ciclo de formulários e tentativas", () => {
         }),
         select: expect.any(Object),
       });
+    });
+
+    it("normaliza mapa GeoJSON em respostas.fide.mapa_geojson", async () => {
+      mockFormularioFindFirst.mockResolvedValue({ id: 2, titulo: "FIDE", ativo: true });
+      mockTentativaCreate.mockResolvedValue(tentativaMontada);
+
+      const geojson = JSON.stringify({
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "Polygon",
+              coordinates: [[[-34.9, -8.1], [-34.8, -8.1], [-34.8, -8.2], [-34.9, -8.1]]],
+            },
+          },
+        ],
+      });
+
+      await service.criarTentativa(10, {
+        formulario_id: 2,
+        respostas: {
+          fide: {
+            municipio: "Recife",
+            mapa_geojson: geojson,
+          },
+        },
+      });
+
+      expect(mockTentativaCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          respostas: expect.objectContaining({
+            fide: expect.objectContaining({
+              mapa_geojson: expect.objectContaining({ type: "FeatureCollection" }),
+              areaPopulacaoAfetada: expect.objectContaining({
+                mapa_selecao: expect.objectContaining({ type: "FeatureCollection" }),
+              }),
+            }),
+          }),
+        }),
+        select: expect.any(Object),
+      });
+    });
+
+    it("rejeita GeoJSON com poligono nao fechado", async () => {
+      mockFormularioFindFirst.mockResolvedValue({ id: 2, titulo: "FIDE", ativo: true });
+
+      const geojsonAberto = {
+        type: "FeatureCollection",
+        features: [
+          {
+            type: "Feature",
+            properties: {},
+            geometry: {
+              type: "Polygon",
+              coordinates: [[[-34.9, -8.1], [-34.8, -8.1], [-34.8, -8.2], [-34.9, -8.2]]],
+            },
+          },
+        ],
+      };
+
+      await expect(
+        service.criarTentativa(10, {
+          formulario_id: 2,
+          respostas: {
+            fide: {
+              mapa_geojson: geojsonAberto,
+            },
+          },
+        })
+      ).rejects.toThrow("GeoJSON invalido: o poligono deve estar fechado.");
+
+      expect(mockTentativaCreate).not.toHaveBeenCalled();
     });
   });
 

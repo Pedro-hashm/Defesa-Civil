@@ -1,16 +1,101 @@
 "use client";
 
+import AffectedAreasMap from "@/components/maps/AffectedAreasMap";
+
+// ==========================================
+// LISTA COMPLETA COBRADE
+// Mapeada a partir do padrão da SEDEC
+// ==========================================
+const LISTA_COBRADE = [
+    // NATURAIS - Geológicos
+    { id: "1.1.1.1.0", nome: "Tremor de terra" },
+    { id: "1.1.1.2.0", nome: "Tsunami" },
+    { id: "1.1.2.0.0", nome: "Emanação vulcânica" },
+    { id: "1.1.3.1.1", nome: "Quedas, tombamentos e rolamentos - Blocos" },
+    { id: "1.1.3.1.2", nome: "Quedas, tombamentos e rolamentos - Lascas" },
+    { id: "1.1.3.1.3", nome: "Quedas, tombamentos e rolamentos - Matacães" },
+    { id: "1.1.3.1.4", nome: "Quedas, tombamentos e rolamentos - Lajes" },
+    { id: "1.1.3.2.1", nome: "Deslizamentos de solo e/ou rocha" },
+    { id: "1.1.3.3.1", nome: "Corridas de massa - Solo/Lama" },
+    { id: "1.1.3.3.2", nome: "Corridas de massa - Rocha/Detrito" },
+    { id: "1.1.3.4.0", nome: "Subsidências e colapsos" },
+    { id: "1.1.4.1.0", nome: "Erosão costeira/Marinha" },
+    { id: "1.1.4.2.0", nome: "Erosão de margem fluvial" },
+    { id: "1.1.4.3.1", nome: "Erosão continental - Laminar" },
+    { id: "1.1.4.3.2", nome: "Erosão continental - Ravinas" },
+    { id: "1.1.4.3.3", nome: "Erosão continental - Boçorocas" },
+    // NATURAIS - Hidrológicos
+    { id: "1.2.1.0.0", nome: "Inundações" },
+    { id: "1.2.2.0.0", nome: "Enxurradas" },
+    { id: "1.2.3.0.0", nome: "Alagamentos" },
+    // NATURAIS - Meteorológicos
+    { id: "1.3.1.1.1", nome: "Ciclones - Ventos costeiros (mobilidade de dunas)" },
+    { id: "1.3.1.1.2", nome: "Ciclones - Marés de tempestade (ressaca)" },
+    { id: "1.3.1.2.0", nome: "Frentes / Zonas de convergência" },
+    { id: "1.3.2.1.1", nome: "Tempestade local/Convectiva - Tornados" },
+    { id: "1.3.2.1.2", nome: "Tempestade local/Convectiva - Tempestade de raios" },
+    { id: "1.3.2.1.3", nome: "Tempestade local/Convectiva - Granizo" },
+    { id: "1.3.2.1.4", nome: "Tempestade local/Convectiva - Chuvas intensas" },
+    { id: "1.3.2.1.5", nome: "Tempestade local/Convectiva - Vendaval" },
+    { id: "1.3.3.1.0", nome: "Onda de calor" },
+    { id: "1.3.3.2.1", nome: "Onda de frio - Friagem" },
+    { id: "1.3.3.2.2", nome: "Onda de frio - Geadas" },
+    // NATURAIS - Climatológicos
+    { id: "1.4.1.1.0", nome: "Estiagem" },
+    { id: "1.4.1.2.0", nome: "Seca" },
+    { id: "1.4.1.3.1", nome: "Incêndios em áreas protegidas" },
+    { id: "1.4.1.3.2", nome: "Incêndios em áreas não protegidas" },
+    { id: "1.4.1.4.0", nome: "Baixa umidade do ar" },
+    // NATURAIS - Biológicos
+    { id: "1.5.1.1.0", nome: "Doenças infecciosas virais" },
+    { id: "1.5.1.2.0", nome: "Doenças infecciosas bacterianas" },
+    { id: "1.5.1.3.0", nome: "Doenças infecciosas parasíticas" },
+    { id: "1.5.1.4.0", nome: "Doenças infecciosas fúngicas" },
+    { id: "1.5.2.1.0", nome: "Infestações de animais" },
+    { id: "1.5.2.2.1", nome: "Infestações de algas - Marés vermelhas" },
+    { id: "1.5.2.2.2", nome: "Infestações de algas - Cianobactérias" },
+    { id: "1.5.2.3.0", nome: "Outras infestações" },
+    // TECNOLÓGICOS
+    { id: "2.1.1.1.0", nome: "Queda de satélite (radionuclídeos)" },
+    { id: "2.1.2.1.0", nome: "Fontes radioativas em processos de produção" },
+    { id: "2.1.3.1.0", nome: "Outras fontes de liberação de radionuclídeos" },
+    { id: "2.2.1.1.0", nome: "Liberação de produtos químicos para a atmosfera" },
+    { id: "2.2.2.1.0", nome: "Liberação de produtos químicos nos sistemas de água potável" },
+    { id: "2.2.2.2.0", nome: "Derramamento de produtos químicos em ambiente lacustre, fluvial ou marinho" },
+    { id: "2.2.3.1.0", nome: "Liberação de produtos químicos em consequência de ações militares" },
+    { id: "2.2.4.1.0", nome: "Transporte de produtos perigosos - Rodoviário" },
+    { id: "2.2.4.2.0", nome: "Transporte de produtos perigosos - Ferroviário" },
+    { id: "2.2.4.3.0", nome: "Transporte de produtos perigosos - Aéreo" },
+    { id: "2.2.4.4.0", nome: "Transporte de produtos perigosos - Dutoviário" },
+    { id: "2.2.4.5.0", nome: "Transporte de produtos perigosos - Marítimo" },
+    { id: "2.2.4.6.0", nome: "Transporte de produtos perigosos - Aquaviário" },
+    { id: "2.3.1.1.0", nome: "Incêndios em plantas e distritos industriais, parques e depósitos" },
+    { id: "2.3.1.2.0", nome: "Incêndios em aglomerados residenciais" },
+    { id: "2.4.1.0.0", nome: "Colapso de edificações" },
+    { id: "2.4.2.0.0", nome: "Rompimento/colapso de barragens" },
+    { id: "2.5.1.0.0", nome: "Transporte de passageiros/cargas não perigosas - Rodoviário" },
+    { id: "2.5.2.0.0", nome: "Transporte de passageiros/cargas não perigosas - Ferroviário" },
+    { id: "2.5.3.0.0", nome: "Transporte de passageiros/cargas não perigosas - Aéreo" },
+    { id: "2.5.4.0.0", nome: "Transporte de passageiros/cargas não perigosas - Marítimo" },
+    { id: "2.5.5.0.0", nome: "Transporte de passageiros/cargas não perigosas - Aquaviário" },
+];
+
 interface FideProps {
     fideData: any;
     setFideData: (data: any) => void;
+    errors?: Record<string, string>;
+    clearError?: (field: string) => void;
 }
 
-export default function Fide({ fideData = {}, setFideData }: FideProps) {
-    
-    // Função auxiliar para atualizar o estado de forma mais limpa
+export default function Fide({ fideData = {}, setFideData, errors = {}, clearError }: FideProps) {
+
     const handleChange = (field: string, value: any) => {
         setFideData((prev: any) => ({ ...prev, [field]: value }));
+        clearError?.(field);
     };
+
+    // Pega o nome do COBRADE atual para exibir de forma automática no readonly
+    const cobradeAtual = LISTA_COBRADE.find(c => c.id === fideData.cobrade)?.nome || "";
 
     // Classes utilitárias padronizadas responsivas (aumentam no desktop)
     const sectionHeader = "bg-slate-500 text-white font-bold p-3 text-sm md:text-base uppercase rounded-t-md mt-8";
@@ -20,6 +105,12 @@ export default function Fide({ fideData = {}, setFideData }: FideProps) {
     const tdClass = "border border-slate-300 p-3 text-sm md:text-base";
     const helperText = "text-[10px] md:text-xs text-slate-500 leading-tight";
     const labelClass = "block text-xs md:text-sm font-bold text-slate-700 mb-1.5";
+
+    const getInputClass = (field: string) =>
+        `${inputClass}${errors[field] ? " !border-red-500 focus:!border-red-500 focus:!ring-red-500" : ""}`;
+
+    const FieldError = ({ field }: { field: string }) =>
+        errors[field] ? <p className="mt-1 text-xs text-red-600">{errors[field]}</p> : null;
 
     return (
         <div className="space-y-8">
@@ -33,37 +124,44 @@ export default function Fide({ fideData = {}, setFideData }: FideProps) {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div>
                             <label className={labelClass}>UF:</label>
-                            <select className={inputClass} value={fideData.uf || ""} onChange={(e) => handleChange('uf', e.target.value)}>
+                            <select className={getInputClass('uf')} value={fideData.uf || ""} onChange={(e) => handleChange('uf', e.target.value)}>
                                 <option value="">Selecione...</option>
                                 <option value="PE">PE</option>
                             </select>
+                            <FieldError field="uf" />
                         </div>
                         <div className="md:col-span-2">
                             <label className={labelClass}>Município:</label>
-                            <input type="text" className={inputClass} value={fideData.municipio || ""} onChange={(e) => handleChange('municipio', e.target.value)} />
+                            <input type="text" className={getInputClass('municipio')} value={fideData.municipio || ""} onChange={(e) => handleChange('municipio', e.target.value)} />
+                            <FieldError field="municipio" />
                         </div>
                         <div>
                             <label className={labelClass}>Código IBGE:</label>
-                            <input type="text" className={inputClass} value={fideData.codigo_ibge || ""} onChange={(e) => handleChange('codigo_ibge', e.target.value)} />
+                            <input type="text" className={getInputClass('codigo_ibge')} value={fideData.codigo_ibge || ""} onChange={(e) => handleChange('codigo_ibge', e.target.value)} />
+                            <FieldError field="codigo_ibge" />
                         </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <div>
                             <label className={labelClass + " text-center"}>População (habitantes)</label>
-                            <input type="number" className={inputClass} value={fideData.populacao || ""} onChange={(e) => handleChange('populacao', e.target.value)} />
+                            <input type="number" className={getInputClass('populacao')} value={fideData.populacao || ""} onChange={(e) => handleChange('populacao', e.target.value)} />
+                            <FieldError field="populacao" />
                         </div>
                         <div>
                             <label className={labelClass + " text-center"}>PIB (Anual)</label>
-                            <input type="text" className={inputClass} value={fideData.pib_anual || ""} onChange={(e) => handleChange('pib_anual', e.target.value)} />
+                            <input type="text" className={getInputClass('pib_anual')} value={fideData.pib_anual || ""} onChange={(e) => handleChange('pib_anual', e.target.value)} />
+                            <FieldError field="pib_anual" />
                         </div>
                         <div>
                             <label className={labelClass + " text-center"}>Orçamento (anual)</label>
-                            <input type="text" className={inputClass} value={fideData.orcamento_anual || ""} onChange={(e) => handleChange('orcamento_anual', e.target.value)} />
+                            <input type="text" className={getInputClass('orcamento_anual')} value={fideData.orcamento_anual || ""} onChange={(e) => handleChange('orcamento_anual', e.target.value)} />
+                            <FieldError field="orcamento_anual" />
                         </div>
                         <div>
                             <label className={labelClass + " text-center"}>Arrecadação (anual)</label>
-                            <input type="text" className={inputClass} value={fideData.arrecadacao_anual || ""} onChange={(e) => handleChange('arrecadacao_anual', e.target.value)} />
+                            <input type="text" className={getInputClass('arrecadacao_anual')} value={fideData.arrecadacao_anual || ""} onChange={(e) => handleChange('arrecadacao_anual', e.target.value)} />
+                            <FieldError field="arrecadacao_anual" />
                         </div>
                     </div>
                 </div>
@@ -77,19 +175,23 @@ export default function Fide({ fideData = {}, setFideData }: FideProps) {
                     <h3 className={sectionHeader + " mt-0"}>2. TIPIFICAÇÃO</h3>
                     <div className="border border-slate-300 border-t-0 p-5 bg-slate-50/50 flex-1">
                         <label className={labelClass}>SELECIONAR A TIPIFICAÇÃO (COBRADE)*</label>
-                        <select className={inputClass + " mb-5"} value={fideData.cobrade || ""} onChange={(e) => handleChange('cobrade', e.target.value)}>
+                        <select className={getInputClass('cobrade')} value={fideData.cobrade || ""} onChange={(e) => handleChange('cobrade', e.target.value)}>
                             <option value="">Selecione o tipo de COBRADE</option>
-                            <option value="1.3.2.1.4">1.3.2.1.4 - Tempestade Local/Convectiva - Chuvas Intensas</option>
-                            <option value="1.4.1.1.0">1.4.1.1.0 - Estiagem</option>
+                            {LISTA_COBRADE.map((item) => (
+                                <option key={item.id} value={item.id}>
+                                    {item.id} - {item.nome}
+                                </option>
+                            ))}
                         </select>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                        <FieldError field="cobrade" />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 mt-5">
                             <div>
                                 <label className={labelClass}>COBRADE</label>
                                 <input type="text" readOnly className={inputClass + " bg-slate-100"} value={fideData.cobrade || ""} />
                             </div>
                             <div>
                                 <label className={labelClass}>Denominação</label>
-                                <input type="text" readOnly className={inputClass + " bg-slate-100"} value={fideData.cobrade ? "Preenchimento Automático" : ""} />
+                                <input type="text" readOnly className={inputClass + " bg-slate-100"} placeholder="Preenchimento Automático" value={cobradeAtual} />
                             </div>
                         </div>
                     </div>
@@ -101,19 +203,23 @@ export default function Fide({ fideData = {}, setFideData }: FideProps) {
                         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 w-full">
                             <div>
                                 <label className={labelClass + " text-center"}>Dia</label>
-                                <input type="text" className={inputClass + " text-center"} placeholder="DD" value={fideData.dia || ""} onChange={(e) => handleChange('dia', e.target.value)} />
+                                <input type="text" className={getInputClass('dia') + " text-center"} placeholder="DD" value={fideData.dia || ""} onChange={(e) => handleChange('dia', e.target.value)} />
+                                <FieldError field="dia" />
                             </div>
                             <div>
                                 <label className={labelClass + " text-center"}>Mês</label>
-                                <input type="text" className={inputClass + " text-center"} placeholder="MM" value={fideData.mes || ""} onChange={(e) => handleChange('mes', e.target.value)} />
+                                <input type="text" className={getInputClass('mes') + " text-center"} placeholder="MM" value={fideData.mes || ""} onChange={(e) => handleChange('mes', e.target.value)} />
+                                <FieldError field="mes" />
                             </div>
                             <div>
                                 <label className={labelClass + " text-center"}>Ano</label>
-                                <input type="text" className={inputClass + " text-center"} placeholder="AAAA" value={fideData.ano || ""} onChange={(e) => handleChange('ano', e.target.value)} />
+                                <input type="text" className={getInputClass('ano') + " text-center"} placeholder="AAAA" value={fideData.ano || ""} onChange={(e) => handleChange('ano', e.target.value)} />
+                                <FieldError field="ano" />
                             </div>
                             <div>
                                 <label className={labelClass + " text-center"}>Horário</label>
-                                <input type="text" className={inputClass + " text-center"} placeholder="HH:MM" value={fideData.horario || ""} onChange={(e) => handleChange('horario', e.target.value)} />
+                                <input type="text" className={getInputClass('horario') + " text-center"} placeholder="HH:MM" value={fideData.horario || ""} onChange={(e) => handleChange('horario', e.target.value)} />
+                                <FieldError field="horario" />
                             </div>
                         </div>
                     </div>
@@ -166,9 +272,10 @@ export default function Fide({ fideData = {}, setFideData }: FideProps) {
 
                     <div className={subHeader}>4.2 Seleção das áreas com população afetada</div>
                     <div className="p-5 bg-slate-50">
-                        <div className="w-full h-80 bg-slate-200 border border-slate-300 rounded flex items-center justify-center text-slate-400 text-sm md:text-base font-medium">
-                            [ Módulo de Mapa Interativo (GeoJSON) - Implementação Futura ]
-                        </div>
+                        <AffectedAreasMap
+                            value={fideData.mapa_geojson || ""}
+                            onChange={(geojson) => handleChange("mapa_geojson", geojson)}
+                        />
                     </div>
 
                     <div className={subHeader}>4.3 Descrição das áreas com população afetada</div>
